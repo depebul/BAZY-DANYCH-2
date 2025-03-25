@@ -274,8 +274,11 @@ COMMIT
 ```
 Oracle vs. MS SQL
 
-1. W MS SQL transakcje muszą być rozpoczywane jawnie poprzez BEGIN TRANSACTION, natomiast w Oracle transakcja jest rozpoczywana przy pierwszym poleceniu UPDATE, INSERT, DELETE (w trybie write)
-2. Obsługa błędów w Oracle odbywa się za pomocą BEGIN...EXCEPTION, gdzie w MS SQL stosowało się składnie bardziej zbliozoną do TRY/CATCH
+-  W MS SQL transakcje muszą być rozpoczywane jawnie poprzez BEGIN TRANSACTION, natomiast w Oracle transakcja jest rozpoczywana przy pierwszym poleceniu UPDATE, INSERT, DELETE (w trybie write)
+
+-  Podczas wystąpienia błędu w transakcji w MS SQL procedura dobiega do końca (jezeli nie zastosowano bloku TRY/CATCH) rzucając w konsoli informację o błędzie. W Oracle PL/SQL jezeli wystąpi błąd automatycznie wykonywany jest ROLLBACK, który cofa zmiany wprowadzone przez transakcje.
+
+-  Obsługa błędów w Oracle odbywa się za pomocą BEGIN...EXCEPTION, gdzie w MS SQL stosowało się składnie bardziej zbliozoną do TRY/CATCH
 
 
 ---
@@ -385,13 +388,98 @@ Proponowany zestaw funkcji można rozbudować wedle uznania/potrzeb
 - np. można dodać nowe/pomocnicze funkcje/procedury
 
 # Zadanie 2  - rozwiązanie
-
+Zaczęliśmy od zdefiniowania typu danych, które będą zwracane przez dwie pierwsze funkcje, mają to być dane podobne do zestawu z widoku *vw_reservation*
 ```sql
+CREATE OR REPLACE TYPE reservation_info AS OBJECT
+(
+    RESERVATION_ID NUMBER,
+    COUNTRY VARCHAR2(50),
+    TRIP_DATE DATE,
+    TRIP_NAME VARCHAR2(100),
+    FIRSTNAME VARCHAR2(50),
+    LASTNAME VARCHAR2(50),
+    STATUS CHAR,
+    TRIP_ID NUMBER,
+    PERSON_ID NUMBER,
+    NO_TICKETS NUMBER
+);
 
--- wyniki, kod, zrzuty ekranów, komentarz ...
+-- Typ danych dla wyjścia funkcji
+CREATE OR REPLACE TYPE reservation_info_table IS TABLE OF reservation_info;
+```
+Podobnie dla trzeciej funkcji i widoku *vw_available_trips*
+```sql
+create type available_trips_info as object
+(
+    TRIP_ID NUMBER,
+    COUNTRY VARCHAR2(50),
+    TRIP_DATE DATE,
+    TRIP_NAME VARCHAR2(100),
+    MAX_NO_PLACES NUMBER,
+    NO_AVAILABLE_PLACES NUMBER
+);
 
+-- Typ danych dla wyjścia funkcji
+create type available_trips_info_table is table of available_trips_info;
+```
+Funkcja *f_trip_participants*
+```sql
+create or replace function f_trip_participants(trip_id varchar)
+    return reservation_info_table
+as
+    result reservation_info_table;
+begin
+    select RESERVATION_INFO(vw.RESERVATION_ID, vw.COUNTRY, vw.TRIP_DATE, vw.TRIP_NAME, vw.FIRSTNAME, vw.LASTNAME,
+                            vw.STATUS, vw.TRIP_ID, vw.PERSON_ID, vw.NO_TICKETS) bulk collect
+    into result
+    from vw_reservation vw
+    where vw.trip_id = f_trip_participants.trip_id;
+    return result;
+end;
+
+-- Przykład wywołania funkcji
+select * from f_trip_participants(1)
 ```
 
+Funkcja *f_person_reservations*
+```sql
+create or replace function f_person_reservation(person_id NUMBER)
+    return RESERVATION_INFO_TABLE
+as
+    result RESERVATION_INFO_TABLE;
+begin
+    select RESERVATION_INFO(vw.RESERVATION_ID, vw.COUNTRY, vw.TRIP_DATE, vw.TRIP_NAME, vw.FIRSTNAME, vw.LASTNAME,
+                            vw.STATUS, vw.TRIP_ID, vw.PERSON_ID, vw.NO_TICKETS) bulk collect
+    into result
+    from VW_RESERVATION vw
+    where vw.PERSON_ID = f_person_reservation.person_id;
+
+    return result;
+end;
+
+-- Przykład wywołania funkcji
+select * from f_person_reservation(1);
+```
+
+Funkcja *f_available_trips_to*
+```sql
+create or replace function f_available_trips_to(country Varchar2(50), date_from DATE, date_to DATE)
+    return AVAILABLE_TRIPS_INFO_TABLE
+as
+    result AVAILABLE_TRIPS_INFO_TABLE;
+begin
+    select AVAILABLE_TRIPS_INFO(vw.TRIP_ID, vw.COUNTRY, vw.TRIP_DATE, vw.TRIP_NAME, vw.MAX_NO_PLACES, vw.NO_AVAILABLE_PLACES) bulk collect
+    into result
+    from VW_AVAILABLE_TRIP vw
+    where
+        vw.COUNTRY = f_available_trips_to.country
+    and
+****        vw.TRIP_DATE between date_from and date_to;
+
+    return result;
+end;
+
+```
 
 ---
 # Zadanie 3  - procedury
