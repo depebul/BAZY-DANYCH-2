@@ -702,7 +702,7 @@ end;
 
 -- TR_RESERVATION_UPDATE
 
-create trigger TR_RESERVATION_UPDATE
+create or replace trigger TR_RESERVATION_UPDATE
     before update
     on RESERVATION
     for each row
@@ -711,14 +711,6 @@ declare
     v_trip_date        date;
     v_available_places int;
 begin
-    select count(*)
-    into v_count
-    from reservation r
-    where r.reservation_id = :new.reservation_id;
-
-    if v_count = 0 then
-        RAISE_APPLICATION_ERROR(-20020, 'Reservation does not exist!');
-    end if;
 
     select trip_date, no_available_places
     into v_trip_date, v_available_places
@@ -751,5 +743,437 @@ begin
 
 end;
 
+-- p_add_reservation_5
 
+CREATE OR REPLACE PROCEDURE p_add_reservation_5(trip_id INT, person_id INT, no_tickets INT)
+AS
+BEGIN
+    BEGIN
+        INSERT INTO RESERVATION (trip_id, person_id, status, no_tickets)
+        VALUES (trip_id, person_id, 'N', no_tickets);
+    EXCEPTION
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+    END;
+END;
+-- p_modify_reservation_status_5
+
+CREATE OR REPLACE PROCEDURE p_modify_reservation_status_5(p_reservation_id INT, p_status CHAR)
+AS
+    v_count NUMBER;
+    v_current_status CHAR(1);
+BEGIN
+
+    SELECT COUNT(*) INTO v_count
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+    IF v_count = 0 THEN
+        RETURN;
+    END IF;
+    
+
+    SELECT status INTO v_current_status
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+
+    IF v_current_status = p_status THEN
+        RETURN;
+    END IF;
+    
+
+    BEGIN
+        UPDATE reservation
+        SET status = p_status
+        WHERE reservation_id = p_reservation_id;
+    EXCEPTION
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+    END;
+END;
+/
+-- p_modify_reservation_5
+
+CREATE OR REPLACE PROCEDURE p_modify_reservation_5(p_reservation_id INT, p_no_tickets INT)
+AS
+    v_count NUMBER;
+    v_current_tickets NUMBER;
+BEGIN
+
+    SELECT COUNT(*) INTO v_count
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+    IF v_count = 0 THEN
+        RETURN; 
+    END IF;
+    
+
+    SELECT no_tickets INTO v_current_tickets
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+
+    IF v_current_tickets = p_no_tickets THEN
+        RETURN; 
+    END IF;
+    
+
+    BEGIN
+        UPDATE reservation
+        SET no_tickets = p_no_tickets
+        WHERE reservation_id = p_reservation_id;
+    EXCEPTION
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+    END;
+END;
+/
+
+
+-- Zadanie 6 - procedury
+
+-- Add the redundant column to trip table
+ALTER TABLE trip ADD no_available_places NUMBER;
+
+-- Initialize the column with correct values
+UPDATE trip t 
+SET no_available_places = (
+    SELECT t.max_no_places - NVL(SUM(r.no_tickets), 0)
+    FROM reservation r
+    WHERE r.trip_id = t.trip_id
+    AND r.status != 'C'
+    GROUP BY r.trip_id
+);
+
+-- Set to max_no_places where no reservations exist
+UPDATE trip t
+SET no_available_places = max_no_places
+WHERE no_available_places IS NULL;
+
+-- vw_trip_6
+
+SELECT t.trip_id,
+       t.country,
+       t.trip_date,
+       t.trip_name,
+       t.max_no_places,
+       t.no_available_places
+FROM trip t;
+
+-- vw_available_trip
+    SELECT trip_id,
+       country,
+       trip_date,
+       trip_name,
+       max_no_places,
+       no_available_places
+FROM vw_trip_6
+WHERE trip_date > SYSDATE
+  AND no_available_places > 0;
+
+-- Trigger to update available places when trip max_no_places changes
+CREATE OR REPLACE TRIGGER tr_trip_update
+BEFORE UPDATE OF max_no_places ON trip
+FOR EACH ROW
+DECLARE
+    v_reserved_places NUMBER;
+BEGIN
+    -- Get currently reserved places
+    SELECT NVL(SUM(r.no_tickets), 0) INTO v_reserved_places
+    FROM reservation r
+    WHERE r.trip_id = :NEW.trip_id
+    AND r.status != 'C';
+    
+    -- Check if new max places is sufficient for existing reservations
+    IF :NEW.max_no_places < v_reserved_places THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Cannot reduce max places below already reserved count');
+    END IF;
+    
+    -- Update the available places based on the new max_no_places
+    :NEW.no_available_places := :NEW.max_no_places - v_reserved_places;
+END;
+/
+
+create or replace trigger TR_RESERVATION_UPDATE_PLACES
+    after insert or update
+    on RESERVATION
+    for each row
+DECLARE
+    v_old_count NUMBER := 0;
+    v_new_count NUMBER := 0;
+    v_trip_id NUMBER;
+BEGIN
+    IF INSERTING THEN
+        v_trip_id := :NEW.trip_id;
+        IF :NEW.status != 'C' THEN
+            v_new_count := :NEW.no_tickets;
+        END IF;
+    ELSIF UPDATING THEN
+        v_trip_id := :NEW.trip_id;
+        IF :OLD.status != 'C' AND :NEW.status = 'C' THEN
+            -- Canceling a reservation
+            v_old_count := :OLD.no_tickets;
+        ELSIF :OLD.status = 'C' AND :NEW.status != 'C' THEN
+            -- Reactivating a reservation
+            v_new_count := :NEW.no_tickets;
+        ELSIF :OLD.status != 'C' AND :NEW.status != 'C' THEN
+            -- Changing active reservation's ticket count
+            v_old_count := :OLD.no_tickets;
+            v_new_count := :NEW.no_tickets;
+        END IF;
+    END IF;
+
+    IF v_old_count != v_new_count THEN
+        UPDATE trip
+        SET no_available_places = no_available_places + (v_old_count - v_new_count)
+        WHERE trip_id = v_trip_id;
+    END IF;
+END;
+
+
+-- refactor f_available_trips_to
+
+create function f_available_trips_to_6(country varchar2, date_from DATE, date_to DATE)
+    return AVAILABLE_TRIPS_INFO_TABLE
+as
+    result AVAILABLE_TRIPS_INFO_TABLE;
+begin
+    select AVAILABLE_TRIPS_INFO(vw.TRIP_ID, vw.COUNTRY, vw.TRIP_DATE, vw.TRIP_NAME, vw.MAX_NO_PLACES, vw.NO_AVAILABLE_PLACES) bulk collect
+    into result
+    from VW_AVAILABLE_TRIP_6 vw
+    where
+        vw.COUNTRY = f_available_trips_to_6.country
+    and
+        vw.TRIP_DATE between date_from and date_to;
+    return result;
+end;
+/
+
+-- refactor TR_INSERT_RESERVATION
+
+create trigger TR_INSERT_RESERVATION_6
+    before insert
+    on RESERVATION
+    for each row
+declare
+    v_count            int;
+    v_trip_date        date;
+    v_available_places int;
+begin
+    select count(*)
+    into v_count
+    from trip t
+    where t.trip_id = :new.trip_id;
+
+    if v_count = 0 then
+        RAISE_APPLICATION_ERROR(-20010, 'Trip does not exist!');
+    end if;
+
+    select count(*)
+    into v_count
+    from person p
+    where p.person_id = :new.person_id;
+
+    if v_count = 0 then
+        RAISE_APPLICATION_ERROR(-20020, 'Person does not exist!');
+    end if;
+
+    select trip_date, no_available_places
+    into v_trip_date, v_available_places
+    from trip
+    where trip_id = :new.trip_id;
+
+    if v_trip_date < SYSDATE then
+        RAISE_APPLICATION_ERROR(-20030, 'Trip date from the past!');
+    end if;
+
+    IF v_available_places < :new.no_tickets then
+        RAISE_APPLICATION_ERROR(-20040, 'No available tickets!');
+    end if;
+
+end;
+/
+
+
+
+-- refactor TR_RESERVATION_UPDATE
+
+create trigger TR_RESERVATION_UPDATE_6
+    before update
+    on RESERVATION
+    for each row
+declare
+    v_count            int;
+    v_trip_date        date;
+    v_available_places int;
+begin
+
+    select trip_date, no_available_places
+    into v_trip_date, v_available_places
+    from trip
+    where trip_id = :new.trip_id;
+
+
+    if v_trip_date < SYSDATE then
+        RAISE_APPLICATION_ERROR(-20030, 'Trip date from the past!');
+    end if;
+
+    IF :old.status = 'C' AND (:new.status = 'P') THEN
+        SELECT COUNT(*)
+        INTO v_count
+        FROM trip
+        WHERE trip_id = :old.trip_id;
+
+        IF v_count = 0 THEN
+            RETURN;
+        END IF;
+
+        IF v_available_places < :new.no_tickets THEN
+            RAISE_APPLICATION_ERROR(-20040, 'No available tickets!');
+        END IF;
+    END IF;
+
+    if v_available_places < :new.no_tickets - :old.no_tickets then
+        RAISE_APPLICATION_ERROR(-20040, 'No available tickets!');
+    end if;
+
+end;
+/
+
+-- Refactor p_add_reservation_6a
+
+CREATE OR REPLACE PROCEDURE p_add_reservation_6a(trip_id INT, person_id INT, no_tickets INT)
+AS
+BEGIN
+    BEGIN
+        INSERT INTO RESERVATION (trip_id, person_id, status, no_tickets)
+        VALUES (trip_id, person_id, 'N', no_tickets);
+        
+        UPDATE trip
+        SET no_available_places = no_available_places - no_tickets
+        WHERE trip_id = p_add_reservation_6a.trip_id;
+        
+        
+        COMMIT;
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+    END;
+END;
+/
+
+CREATE OR REPLACE PROCEDURE p_modify_reservation_6a(p_reservation_id INT, p_no_tickets INT)
+AS
+    v_count NUMBER;
+    v_current_tickets NUMBER;
+    v_status CHAR(1);
+    v_trip_id NUMBER;
+    v_old_count NUMBER := 0;
+    v_new_count NUMBER := 0;
+BEGIN
+    
+    SELECT COUNT(*) INTO v_count
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+    IF v_count = 0 THEN
+        RETURN; 
+    END IF;
+    
+    SELECT trip_id, no_tickets, status
+    INTO v_trip_id, v_current_tickets, v_status
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+    
+    IF v_current_tickets = p_no_tickets THEN
+        RETURN; 
+    END IF;
+    
+
+    IF v_status != 'C' THEN
+        v_old_count := v_current_tickets;
+        v_new_count := p_no_tickets;
+    END IF;
+    
+    BEGIN
+
+        UPDATE reservation
+        SET no_tickets = p_no_tickets
+        WHERE reservation_id = p_reservation_id;
+        
+
+        IF v_status != 'C' THEN
+            UPDATE trip
+            SET no_available_places = no_available_places + (v_old_count - v_new_count)
+            WHERE trip_id = v_trip_id;
+        END IF;
+        
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+    END;
+END;
+/
+
+CREATE OR REPLACE PROCEDURE p_modify_reservation_status_6a(p_reservation_id INT, p_status CHAR)
+AS
+    v_count NUMBER;
+    v_current_status CHAR(1);
+    v_trip_id NUMBER;
+    v_no_tickets NUMBER;
+    v_old_count NUMBER := 0;
+    v_new_count NUMBER := 0;
+BEGIN
+    SELECT COUNT(*) INTO v_count
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+    IF v_count = 0 THEN
+        RETURN;
+    END IF;
+    
+    SELECT status, trip_id, no_tickets 
+    INTO v_current_status, v_trip_id, v_no_tickets
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+    IF v_current_status = p_status THEN
+        RETURN;
+    END IF;
+    
+
+    IF v_current_status != 'C' AND p_status = 'C' THEN
+
+        v_old_count := v_no_tickets;
+    ELSIF v_current_status = 'C' AND p_status != 'C' THEN
+
+        v_new_count := v_no_tickets;
+    END IF;
+    
+    BEGIN
+
+        UPDATE reservation
+        SET status = p_status
+        WHERE reservation_id = p_reservation_id;
+        
+
+        IF v_old_count > 0 OR v_new_count > 0 THEN
+            UPDATE trip
+            SET no_available_places = no_available_places + (v_old_count - v_new_count)
+            WHERE trip_id = v_trip_id;
+        END IF;
+        
+
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+    END;
+END;
+/
 

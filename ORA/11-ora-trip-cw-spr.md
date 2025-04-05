@@ -339,7 +339,7 @@ ADD no_tickets INT;
 
 ```
 
-Transakcje w Oracle PL/SQL służą do bezpieczniejszego przeprowadzania opercji na bazie danych. Dają nam możliwość cofnięcia ostatnich zmian, które mogły spowodować różnego rodzaju problemy (za pomocą polecenia rollback). W przypadku wystąpienia błędów w transakcji polecenie COMMIT nie zostanie wykonane, będziemy moglo poprawić błąd lub cofnąć wcześniej wykonane polecenia za pomocą ROLLBACK
+Transakcje w Oracle PL/SQL służą do bezpieczniejszego przeprowadzania operacji na bazie danych. Dają nam możliwość cofnięcia ostatnich zmian, które mogły spowodować różnego rodzaju problemy (za pomocą polecenia rollback). W przypadku wystąpienia błędów w transakcji polecenie COMMIT nie zostanie wykonane automatycznie, będziemy mogli poprawić błąd lub cofnąć wcześniej wykonane polecenia za pomocą ROLLBACK.
 
 ```sql
 SET TRANSACTION READ WRITE -- domyślne ustawienia w Oracle Sql;
@@ -354,11 +354,9 @@ COMMIT
 ```
 Oracle vs. MS SQL
 
--  W MS SQL transakcje muszą być rozpoczywane jawnie poprzez BEGIN TRANSACTION, natomiast w Oracle transakcja jest rozpoczywana przy pierwszym poleceniu UPDATE, INSERT, DELETE (w trybie write)
+-  W MS SQL transakcje muszą być rozpoczynane jawnie poprzez BEGIN TRANSACTION, natomiast w Oracle transakcja jest rozpoczynana przy pierwszym poleceniu UPDATE, INSERT, DELETE (w trybie write)
 
--  Podczas wystąpienia błędu w transakcji w MS SQL procedura dobiega do końca (jezeli nie zastosowano bloku TRY/CATCH) rzucając w konsoli informację o błędzie. W Oracle PL/SQL jezeli wystąpi błąd automatycznie wykonywany jest ROLLBACK, który cofa zmiany wprowadzone przez transakcje.
-
--  Obsługa błędów w Oracle odbywa się za pomocą BEGIN...EXCEPTION, gdzie w MS SQL stosowało się składnie bardziej zbliozoną do TRY/CATCH
+-  Obsługa błędów w Oracle odbywa się za pomocą BEGIN...EXCEPTION, gdzie w MS SQL stosowało się składnie bardziej zbliżoną do TRY/CATCH
 
 
 ---
@@ -449,7 +447,7 @@ Procedury:
 - `f_trip_participants`
 	- zadaniem funkcji jest zwrócenie listy uczestników wskazanej wycieczki
 	- parametry funkcji: `trip_id`
-	- funkcja zwraca podobny zestaw danych jak widok  `vw_eservation`
+	- funkcja zwraca podobny zestaw danych jak widok  `vw_reservation`
 -  `f_person_reservations`
 	- zadaniem funkcji jest zwrócenie listy rezerwacji danej osoby 
 	- parametry funkcji: `person_id`
@@ -1225,12 +1223,99 @@ begin
     end if;
 
 end;
-
-
-
 ```
+## Zmodyfikowane procedury
+W każdej procedurze po podniesionym przez trigger błędzie zapewniana jest jego obsługa.
 
 
+Procedura `p_add_reservation`
+```sql
+CREATE OR REPLACE PROCEDURE p_add_reservation_5(trip_id INT, person_id INT, no_tickets INT)
+AS
+BEGIN
+    BEGIN
+        INSERT INTO RESERVATION (trip_id, person_id, status, no_tickets)
+        VALUES (trip_id, person_id, 'N', no_tickets);
+    EXCEPTION
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+    END;
+END;
+```
+Procedura `p_modify_reservation_status`
+```sql
+    CREATE OR REPLACE PROCEDURE p_modify_reservation_status_5(p_reservation_id INT, p_status CHAR)
+AS
+    v_count NUMBER;
+    v_current_status CHAR(1);
+BEGIN
+
+    SELECT COUNT(*) INTO v_count
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+    IF v_count = 0 THEN
+        RETURN;
+    END IF;
+    
+
+    SELECT status INTO v_current_status
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+
+    IF v_current_status = p_status THEN
+        RETURN;
+    END IF;
+    
+
+    BEGIN
+        UPDATE reservation
+        SET status = p_status
+        WHERE reservation_id = p_reservation_id;
+    EXCEPTION
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+    END;
+END;
+```
+Procedura `p_modify_reservation`
+```sql
+CREATE OR REPLACE PROCEDURE p_modify_reservation_5(p_reservation_id INT, p_no_tickets INT)
+AS
+    v_count NUMBER;
+    v_current_tickets NUMBER;
+BEGIN
+
+    SELECT COUNT(*) INTO v_count
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+    IF v_count = 0 THEN
+        RETURN; 
+    END IF;
+    
+
+    SELECT no_tickets INTO v_current_tickets
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+
+    IF v_current_tickets = p_no_tickets THEN
+        RETURN; 
+    END IF;
+    
+
+    BEGIN
+        UPDATE reservation
+        SET no_tickets = p_no_tickets
+        WHERE reservation_id = p_reservation_id;
+    EXCEPTION
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+    END;
+END;
+```
 ---
 # Zadanie 6
 
@@ -1258,14 +1343,58 @@ alter table trip add
 	- należy wykonać operację "przeliczenia"  liczby wolnych miejsc i aktualizacji pola  `no_available_places`
 
 # Zadanie 6  - rozwiązanie
-
+Po zmianie struktury tabeli przystąpiliśmy do uzupełniania wartości pola `no_available_places` za pomocą polecenia
 ```sql
-
--- wyniki, kod, zrzuty ekranów, komentarz ...
-
+UPDATE trip t 
+SET no_available_places = (
+    SELECT t.max_no_places - NVL(SUM(r.no_tickets), 0)
+    FROM reservation r
+    WHERE r.trip_id = t.trip_id
+    AND r.status != 'C'
+    GROUP BY r.trip_id
+);
 ```
+Aby obsłużyć przypadek, gdy w tabeli `reservation` nie istnieje żaden rekord dla danej wycieczki wykonaliśmy kolejne polecenie:
+```sql
+UPDATE trip t
+SET no_available_places = max_no_places
+WHERE no_available_places IS NULL;
+```
+## Nowe widoki
+Widok `vw_available_trip`
+```sql
+create or replace view vw_available_trip_6 as
+select trip_id,
+       country,
+       trip_date,
+       trip_name,
+       max_no_places,
+       no_available_places
+from trip
+where trip_date > SYSDATE
+  and no_available_places > 0
+```
+Widok `vw_trip`
+```sql
+create or replace view vw_trip_6 as
+select t.trip_id,
+       t.country,
+       t.trip_date,
+       t.trip_name,
+       t.max_no_places,
+       t.no_available_places
+from trip t
+```
+Widok `vw_reservation` pozostaje bez zmian, ponieważ nie korzysta on z pola `no_available_places`
 
+## Zmiana funkcji
+Każda funkcja korzystająca ze starych widoków, została zmieniona tak, aby korzystała z nowych widoków *(z końcówką '_6')*.
 
+## Zmiana triggerów 
+Podobnie jak w przypadku funkcji, zmiana obsługi polegała na zmienie metody pobierania informacji o wolnych miejscach
+
+## Uwaga
+Wszystkie zmienione triggery i metody są umieszczone w pliku `polecenia.sql`
 
 ---
 # Zadanie 6a  - procedury
@@ -1285,11 +1414,141 @@ Należy stworzyć nowe wersje tych widoków/procedur/triggerów (np. dodając do
 
 
 # Zadanie 6a  - rozwiązanie
-
+Procedura `p_add_reservation_6a` służy do dodawania nowej rezerwacji korzystając z pola `no_available_places` w tabeli `trip`, jeżeli rezerwacja nie może zostać dodana wyłapie to trigger
 ```sql
+CREATE OR REPLACE PROCEDURE p_add_reservation_6a(trip_id INT, person_id INT, no_tickets INT)
+AS
+BEGIN
+    BEGIN
+        INSERT INTO RESERVATION (trip_id, person_id, status, no_tickets)
+        VALUES (trip_id, person_id, 'N', no_tickets);
+        
+        UPDATE trip
+        SET no_available_places = no_available_places - no_tickets
+        WHERE trip_id = p_add_reservation_6a.trip_id;
+        
+        
+        COMMIT;
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+    END;
+END;
+```
+Procedura `p_modify_reservation_6a` służy do zmiany ilości zarezerwowanych/kupionych biletów, uwzględniając pole `no_available_places` w tabeli `trip`
+```sql
+CREATE OR REPLACE PROCEDURE p_modify_reservation_6a(p_reservation_id INT, p_no_tickets INT)
+AS
+    v_count NUMBER;
+    v_current_tickets NUMBER;
+    v_status CHAR(1);
+    v_trip_id NUMBER;
+    v_old_count NUMBER := 0;
+    v_new_count NUMBER := 0;
+BEGIN
+    
+    SELECT COUNT(*) INTO v_count
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+    IF v_count = 0 THEN
+        RETURN; 
+    END IF;
+    
+    SELECT trip_id, no_tickets, status
+    INTO v_trip_id, v_current_tickets, v_status
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+    
+    IF v_current_tickets = p_no_tickets THEN
+        RETURN; 
+    END IF;
+    
 
--- wyniki, kod, zrzuty ekranów, komentarz ...
+    IF v_status != 'C' THEN
+        v_old_count := v_current_tickets;
+        v_new_count := p_no_tickets;
+    END IF;
+    
+    BEGIN
 
+        UPDATE reservation
+        SET no_tickets = p_no_tickets
+        WHERE reservation_id = p_reservation_id;
+        
+
+        IF v_status != 'C' THEN
+            UPDATE trip
+            SET no_available_places = no_available_places + (v_old_count - v_new_count)
+            WHERE trip_id = v_trip_id;
+        END IF;
+        
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+    END;
+END;
+```
+Trigger `p_modify_reservation_status_6a` służący do  modyfikacji statusu rezerwacji
+```sql
+CREATE OR REPLACE PROCEDURE p_modify_reservation_status_6a(p_reservation_id INT, p_status CHAR)
+AS
+    v_count NUMBER;
+    v_current_status CHAR(1);
+    v_trip_id NUMBER;
+    v_no_tickets NUMBER;
+    v_old_count NUMBER := 0;
+    v_new_count NUMBER := 0;
+BEGIN
+    SELECT COUNT(*) INTO v_count
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+    IF v_count = 0 THEN
+        RETURN;
+    END IF;
+    
+    SELECT status, trip_id, no_tickets 
+    INTO v_current_status, v_trip_id, v_no_tickets
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+    IF v_current_status = p_status THEN
+        RETURN;
+    END IF;
+    
+
+    IF v_current_status != 'C' AND p_status = 'C' THEN
+
+        v_old_count := v_no_tickets;
+    ELSIF v_current_status = 'C' AND p_status != 'C' THEN
+
+        v_new_count := v_no_tickets;
+    END IF;
+    
+    BEGIN
+
+        UPDATE reservation
+        SET status = p_status
+        WHERE reservation_id = p_reservation_id;
+        
+
+        IF v_old_count > 0 OR v_new_count > 0 THEN
+            UPDATE trip
+            SET no_available_places = no_available_places + (v_old_count - v_new_count)
+            WHERE trip_id = v_trip_id;
+        END IF;
+        
+
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+    END;
+END;
 ```
 
 
@@ -1312,11 +1571,63 @@ Należy stworzyć nowe wersje tych widoków/procedur/triggerów (np. dodając do
 
 # Zadanie 6b  - rozwiązanie
 
-
+Do obsługi dodawania, oraz modyfikacji rezerwacji nową metodą stworzyliśmy nowy trigger `tr_reservation_update_places`.
 ```sql
+create or replace trigger TR_RESERVATION_UPDATE_PLACES
+    after insert or update
+    on RESERVATION
+    for each row
+DECLARE
+    v_old_count NUMBER := 0;
+    v_new_count NUMBER := 0;
+    v_trip_id NUMBER;
+BEGIN
+    IF INSERTING THEN
+        v_trip_id := :NEW.trip_id;
+        IF :NEW.status != 'C' THEN
+            v_new_count := :NEW.no_tickets;
+        END IF;
+    ELSIF UPDATING THEN
+        v_trip_id := :NEW.trip_id;
+        -- Cofanie rezerwacji
+        IF :OLD.status != 'C' AND :NEW.status = 'C' THEN
+            v_old_count := :OLD.no_tickets;
+        -- Przywracanie rezerwacji
+        ELSIF :OLD.status = 'C' AND :NEW.status != 'C' THEN
+            v_new_count := :NEW.no_tickets;
+        -- Zmiana między 'N' a 'P'
+        ELSIF :OLD.status != 'C' AND :NEW.status != 'C' THEN
+            v_old_count := :OLD.no_tickets;
+            v_new_count := :NEW.no_tickets;
+        END IF;
+    END IF;
 
--- wyniki, kod, zrzuty ekranów, komentarz ...
-
+    IF v_old_count != v_new_count THEN
+        UPDATE trip
+        SET no_available_places = no_available_places + (v_old_count - v_new_count)
+        WHERE trip_id = v_trip_id;
+    END IF;
+END;
+```
+Trigger `tr_trip_update` służący do aktualizacji pozostałych miejsc, po zwiększeniu limitu na daną wycieczkę
+```sql
+CREATE OR REPLACE TRIGGER tr_trip_update
+BEFORE UPDATE OF max_no_places ON trip
+FOR EACH ROW
+DECLARE
+    v_reserved_places NUMBER;
+BEGIN
+    SELECT NVL(SUM(r.no_tickets), 0) INTO v_reserved_places
+    FROM reservation r
+    WHERE r.trip_id = :NEW.trip_id
+    AND r.status != 'C';
+    
+    IF :NEW.max_no_places < v_reserved_places THEN
+        RAISE_APPLICATION_ERROR(-20060, 'Cannot reduce max places below already reserved count');
+    END IF;
+    
+    :NEW.no_available_places := :NEW.max_no_places - v_reserved_places;
+END;
 ```
 
 
@@ -1324,8 +1635,10 @@ Należy stworzyć nowe wersje tych widoków/procedur/triggerów (np. dodając do
 
 Porównaj sposób programowania w systemie Oracle PL/SQL ze znanym ci systemem/językiem MS Sqlserver T-SQL
 
-```sql
+Największą różnicą dla nas było zastosowanie składni *commit* i *rollback* podczas wykonywania transakcji z bazą danych. Pozwoliły one na sprawdzenie, czy wykonywane przez nas operacje nie miałyby negatywnych konsekwencji dla danych przechowywanych w bazie.
 
--- komentarz ...
+Większość pozostałych konceptów nie różniła się zbytnio od poznanych przez nas wcześniej. Jedną z nowości był blok `begin/end`, który nie służy jedynie do grupowania transakcji, lecz także odpowiada za łapanie błędów, przy pomocy `exception`.
 
-```
+Język Oracle PL/SQL jest bardziej werbalny niż znany nam  T-SQL, znaczna liczba operacji wymaga większej ilości kodu.
+
+Obsługa błędów za pomocą `try/catch` w MS SQL była dla nas bardziej intuicyjna, ponieważ powielała ona te same praktyki, które poznaliśmy w innych językach programowania.
