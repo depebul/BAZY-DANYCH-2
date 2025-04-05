@@ -193,6 +193,24 @@ values ('Znow do Francji', 'Francja', to_date('2025-05-01','YYYY-MM-DD'), 2);
 insert into trip(trip_name, country, trip_date,  max_no_places)  
 values ('Hel', 'Polska', to_date('2025-05-01','YYYY-MM-DD'),  2);
 
+insert into trip(trip_name, country, trip_date, max_no_places)  
+values ('Wakacje w Rzymie', 'Włochy', to_date('2022-07-15', 'YYYY-MM-DD'), 5);  
+
+insert into trip(trip_name, country, trip_date, max_no_places)  
+values ('Zwiedzanie Londynu', 'Wielka Brytania', to_date('2023-03-10', 'YYYY-MM-DD'), 10);  
+
+insert into trip(trip_name, country, trip_date, max_no_places)  
+values ('Safari w Kenii', 'Kenia', to_date('2025-08-20', 'YYYY-MM-DD'), 15);  
+
+insert into trip(trip_name, country, trip_date, max_no_places)  
+values ('Podróż do Tokio', 'Japonia', to_date('2025-12-05', 'YYYY-MM-DD'), 20);  
+
+insert into trip(trip_name, country, trip_date, max_no_places)  
+values ('Rejs po Karaibach', 'Karaiby', to_date('2026-01-15', 'YYYY-MM-DD'), 25);  
+
+insert into trip(trip_name, country, trip_date, max_no_places)  
+values ('Zwiedzanie Aten', 'Grecja', to_date('2026-04-10', 'YYYY-MM-DD'), 120);  
+
 -- person
 insert into person(firstname, lastname)  
 values ('Jan', 'Nowak');  
@@ -205,6 +223,24 @@ values ('Jan', 'Nowakowski');
   
 insert into person(firstname, lastname)  
 values  ('Novak', 'Nowak');
+
+insert into person(firstname, lastname)  
+values ('Anna', 'Kowalska');  
+
+insert into person(firstname, lastname)  
+values ('Piotr', 'Zieliński');  
+
+insert into person(firstname, lastname)  
+values ('Maria', 'Wiśniewska');  
+
+insert into person(firstname, lastname)  
+values ('Tomasz', 'Lewandowski');  
+
+insert into person(firstname, lastname)  
+values ('Katarzyna', 'Nowicka');  
+
+insert into person(firstname, lastname)  
+values ('Michał', 'Szymański');  
 
 -- reservation
 -- trip1
@@ -224,6 +260,50 @@ values (2, 4, 'C');
 -- trip 3  
 insert into reservation(trip_id, person_id, status)  
 values (2, 4, 'P');
+
+-- trip 4
+
+-- trip 5
+insert into reservation(trip_id, person_id, status, no_tickets)  
+values (5, 3, 'P', 2);  
+
+insert into reservation(trip_id, person_id, status, no_tickets)  
+values (5, 6, 'N', 1);  
+
+-- trip 6
+insert into reservation(trip_id, person_id, status, no_tickets)  
+values (6, 2, 'P', 3);  
+
+insert into reservation(trip_id, person_id, status, no_tickets)  
+values (6, 4, 'C', 1);  
+
+-- trip 7
+insert into reservation(trip_id, person_id, status, no_tickets)  
+values (7, 5, 'P', 4);  
+
+insert into reservation(trip_id, person_id, status, no_tickets)  
+values (7, 1, 'N', 2);  
+
+-- trip 8
+insert into reservation(trip_id, person_id, status, no_tickets)  
+values (8, 7, 'P', 5);  
+
+insert into reservation(trip_id, person_id, status, no_tickets)  
+values (8, 8, 'N', 3);  
+
+-- trip 9
+insert into reservation(trip_id, person_id, status, no_tickets)  
+values (9, 9, 'P', 6);  
+
+insert into reservation(trip_id, person_id, status, no_tickets)  
+values (9, 10, 'C', 2);  
+
+-- trip 10
+insert into reservation(trip_id, person_id, status, no_tickets)  
+values (10, 1, 'P', 1);  
+
+insert into reservation(trip_id, person_id, status, no_tickets)  
+values (10, 2, 'N', 4);  
 ```
 
 proszę pamiętać o zatwierdzeniu transakcji
@@ -303,7 +383,7 @@ Proponowany zestaw widoków można rozbudować wedle uznania/potrzeb
 - np. można zmienić def. widoków, dodając nowe/potrzebne pola
 
 # Zadanie 1  - rozwiązanie
-Widok *vw_reservation*
+Widok `vw_reservation`
 ```sql
 CREATE
 OR REPLACE VIEW vw_reservation AS
@@ -323,7 +403,7 @@ FROM
     JOIN trip t ON r.trip_id = t.trip_id
     JOIN person p ON r.person_id = p.person_id;
 ```
-Widok *vw_trip*
+Widok `vw_trip`
 ```sql
 CREATE
 OR REPLACE VIEW vw_trip AS
@@ -342,7 +422,7 @@ GROUP BY
     t.trip_id, t.country, t.trip_date, t.trip_name, t.max_no_places;
 
 ```
-Widok *vw_available_trip*
+Widok `vw_available_trip`
 ```sql
 CREATE OR REPLACE VIEW vw_available_trip AS
 SELECT
@@ -388,7 +468,7 @@ Proponowany zestaw funkcji można rozbudować wedle uznania/potrzeb
 - np. można dodać nowe/pomocnicze funkcje/procedury
 
 # Zadanie 2  - rozwiązanie
-Zaczęliśmy od zdefiniowania typu danych, które będą zwracane przez dwie pierwsze funkcje, mają to być dane podobne do zestawu z widoku *vw_reservation*
+Zaczęliśmy od zdefiniowania typu danych, które będą zwracane przez dwie pierwsze funkcje, mają to być dane podobne do zestawu z widoku `vw_reservation`
 ```sql
 CREATE OR REPLACE TYPE reservation_info AS OBJECT
 (
@@ -407,7 +487,7 @@ CREATE OR REPLACE TYPE reservation_info AS OBJECT
 -- Typ danych dla wyjścia funkcji
 CREATE OR REPLACE TYPE reservation_info_table IS TABLE OF reservation_info;
 ```
-Podobnie dla trzeciej funkcji i widoku *vw_available_trips*
+Podobnie dla trzeciej funkcji i widoku `vw_available_trips`
 ```sql
 create type available_trips_info as object
 (
@@ -422,7 +502,7 @@ create type available_trips_info as object
 -- Typ danych dla wyjścia funkcji
 create type available_trips_info_table is table of available_trips_info;
 ```
-Funkcja *f_trip_participants*
+Funkcja `f_trip_participants`
 ```sql
 create or replace function f_trip_participants(trip_id varchar)
     return reservation_info_table
@@ -441,7 +521,7 @@ end;
 select * from f_trip_participants(1)
 ```
 
-Funkcja *f_person_reservations*
+Funkcja `f_person_reservations`
 ```sql
 create or replace function f_person_reservation(person_id NUMBER)
     return RESERVATION_INFO_TABLE
@@ -461,9 +541,9 @@ end;
 select * from f_person_reservation(1);
 ```
 
-Funkcja *f_available_trips_to*
+Funkcja `f_available_trips_to`
 ```sql
-create or replace function f_available_trips_to(country Varchar2(50), date_from DATE, date_to DATE)
+create or replace function f_available_trips_to(country varchar2, date_from DATE, date_to DATE)
     return AVAILABLE_TRIPS_INFO_TABLE
 as
     result AVAILABLE_TRIPS_INFO_TABLE;
@@ -474,10 +554,12 @@ begin
     where
         vw.COUNTRY = f_available_trips_to.country
     and
-****        vw.TRIP_DATE between date_from and date_to;
-
+        vw.TRIP_DATE between date_from and date_to;
     return result;
 end;
+
+-- Przykład wywołania funkcji
+select * from F_AVAILABLE_TRIPS_TO('Polska', '2024-01-01', '2025-11-12')
 
 ```
 
@@ -493,14 +575,14 @@ Procedury
 	- parametry: `trip_id`, `person_id`,  `no_tickets`
 	- procedura powinna kontrolować czy wycieczka jeszcze się nie odbyła, i czy sa wolne miejsca
 	- procedura powinna również dopisywać inf. do tabeli `log`
-- `p_modify_reservation_status
+- `p_modify_reservation_status`
 	- zadaniem procedury jest zmiana statusu rezerwacji 
 	- parametry: `reservation_id`, `status`
 	- procedura powinna kontrolować czy możliwa jest zmiana statusu, np. zmiana statusu już anulowanej wycieczki (przywrócenie do stanu aktywnego nie zawsze jest możliwa – może już nie być miejsc)
 	- procedura powinna również dopisywać inf. do tabeli `log`
-- `p_modify_reservation
+- `p_modify_reservation`
 	- zadaniem procedury jest zmiana statusu rezerwacji 
-	- parametry: `reservation_id`, `no_iickets`
+	- parametry: `reservation_id`, `no_tickets`
 	- procedura powinna kontrolować czy możliwa jest zmiana liczby sprzedanych/zarezerwowanych biletów – może już nie być miejsc
 	- procedura powinna również dopisywać inf. do tabeli `log`
 - `p_modify_max_no_places`
@@ -517,12 +599,247 @@ Proponowany zestaw procedur można rozbudować wedle uznania/potrzeb
 - np. można dodać nowe/pomocnicze funkcje/procedury
 
 # Zadanie 3  - rozwiązanie
+Procedura `p_add_reservation`
+
+```sql
+create procedure p_add_reservation(trip_id int, person_id int, no_tickets int)
+as
+    v_trip_date        DATE;
+    v_available_places NUMBER;
+    v_reservation_id   NUMBER;
+    v_count            NUMBER;
+begin
+
+    SELECT COUNT(*) INTO v_count
+    FROM trip
+    WHERE trip_id = p_add_reservation.trip_id;
+    
+    IF v_count = 0 THEN
+        RETURN; 
+    END IF;
+
+    SELECT COUNT(*) INTO v_count
+    FROM person
+    WHERE person_id = p_add_reservation.person_id;
+
+    IF v_count = 0 THEN
+        RETURN;
+    END IF;
+    
+    SELECT trip_date, no_available_places 
+    INTO v_trip_date, v_available_places
+    FROM vw_trip
+    WHERE trip_id = p_add_reservation.trip_id;
+
+    IF v_trip_date < SYSDATE THEN
+        RETURN;
+    END IF;
+
+    IF v_available_places < no_tickets THEN
+        RETURN;
+    END IF;
+
+    INSERT INTO RESERVATION (trip_id, person_id, status, no_tickets)
+    VALUES (trip_id, person_id, 'N', no_tickets)
+    RETURNING reservation_id INTO v_reservation_id;
+
+    INSERT INTO LOG (reservation_id, log_date, status, no_tickets)
+    VALUES (v_reservation_id, SYSDATE, 'N', no_tickets);
+    
+    COMMIT;
+end;
+
+```
+Procedura `p_modify_reservation_status`
 
 ```sql
 
--- wyniki, kod, zrzuty ekranów, komentarz ...
+create or replace procedure p_modify_reservation_status(p_reservation_id INT, p_status CHAR)
+as
+    v_current_status CHAR(1);
+    v_trip_id NUMBER;
+    v_no_tickets NUMBER;
+    v_trip_date DATE;
+    v_available_places NUMBER;
+    v_count NUMBER;
+begin
+    SELECT COUNT(*) INTO v_count
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+    IF v_count = 0 THEN
+        RETURN; 
+    END IF;
 
+    SELECT status, trip_id, no_tickets
+    INTO v_current_status, v_trip_id, v_no_tickets
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+
+    IF v_current_status = p_status THEN
+        RETURN;
+    END IF;
+    
+
+    IF v_current_status = 'C' AND (p_status = 'P' OR p_status = 'N') THEN
+
+        SELECT COUNT(*) INTO v_count
+        FROM trip
+        WHERE trip_id = v_trip_id;
+        
+        IF v_count = 0 THEN
+            RETURN;
+        END IF;
+        
+
+        SELECT trip_date, no_available_places 
+        INTO v_trip_date, v_available_places
+        FROM vw_trip
+        WHERE trip_id = v_trip_id;
+        
+
+        IF v_trip_date < SYSDATE THEN
+            RETURN;
+        END IF;
+        
+
+        IF v_available_places < v_no_tickets THEN
+            RETURN;
+        END IF;
+    END IF;
+    
+
+    UPDATE reservation
+    SET status = p_status
+    WHERE reservation_id = p_reservation_id;
+    
+
+    INSERT INTO LOG (reservation_id, log_date, status, no_tickets)
+    VALUES (p_reservation_id, SYSDATE, p_status, v_no_tickets);
+    
+    COMMIT;
+end;
 ```
+Procedura `p_modify_reservation`
+```sql
+create or replace procedure p_modify_reservation(p_reservation_id INT, p_no_tickets INT)
+as
+    v_current_tickets NUMBER;
+    v_status CHAR(1);
+    v_trip_id NUMBER;
+    v_trip_date DATE;
+    v_available_places NUMBER;
+    v_count NUMBER;
+    v_additional_tickets NUMBER;
+begin
+
+    SELECT COUNT(*) INTO v_count
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+    IF v_count = 0 THEN
+        RETURN; 
+    END IF;
+    
+
+    SELECT no_tickets, status, trip_id
+    INTO v_current_tickets, v_status, v_trip_id
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+    
+
+    IF v_current_tickets = p_no_tickets THEN
+        RETURN; 
+    END IF;
+    
+
+    IF v_status != 'C' AND p_no_tickets > v_current_tickets THEN
+
+        v_additional_tickets := p_no_tickets - v_current_tickets;
+        
+
+        SELECT COUNT(*) INTO v_count
+        FROM trip
+        WHERE trip_id = v_trip_id;
+        
+        IF v_count = 0 THEN
+            RETURN; 
+        END IF;
+        
+
+        SELECT trip_date, no_available_places 
+        INTO v_trip_date, v_available_places
+        FROM vw_trip
+        WHERE trip_id = v_trip_id;
+        
+
+        IF v_trip_date < SYSDATE THEN
+            RETURN; 
+        END IF;
+        
+
+        IF v_available_places < v_additional_tickets THEN
+            RETURN; 
+        END IF;
+    END IF;
+    
+
+    UPDATE reservation
+    SET no_tickets = p_no_tickets
+    WHERE reservation_id = p_reservation_id;
+
+    INSERT INTO LOG (reservation_id, log_date, status, no_tickets)
+    VALUES (p_reservation_id, SYSDATE, v_status, p_no_tickets);
+    
+    COMMIT;
+end;
+```
+
+Procedura `p_modify_max_no_places`
+```sql
+create or replace procedure p_modify_max_no_places(
+    p_trip_id IN NUMBER,
+    p_max_no_places IN NUMBER
+)
+as
+    v_current_max_places NUMBER;
+    v_reserved_places NUMBER;
+    v_count NUMBER;
+begin
+
+    SELECT COUNT(*) INTO v_count
+    FROM vw_trip
+    WHERE trip_id = p_trip_id;
+    
+    IF v_count = 0 THEN
+        RETURN; 
+    END IF;
+    
+
+    SELECT max_no_places, (max_no_places - no_available_places) INTO v_current_max_places, v_reserved_places
+    FROM vw_trip
+    WHERE trip_id = p_trip_id;
+    
+
+    IF v_current_max_places = p_max_no_places THEN
+        RETURN;
+    END IF;
+    
+
+    IF p_max_no_places < v_reserved_places THEN
+        RETURN; 
+    END IF;
+    
+
+    UPDATE trip
+    SET max_no_places = p_max_no_places
+    WHERE trip_id = p_trip_id;
+    
+    COMMIT;
+end;
+```
+
 
 
 
@@ -550,13 +867,239 @@ Należy przygotować procedury: `p_add_reservation_4`, `p_modify_reservation_sta
 
 
 # Zadanie 4  - rozwiązanie
+W celu modyfikacji procedur wystarczy usunąć część definicji procedury z poleceniem `INSERT` na tabeli `LOG`.
+## Trigger obsługujący dodanie nowej rezerwacji: `tr_reservation_insert_log`
+Po wstawieniu danych do tabeli `reservation` dodaje wpis do tabeli `log` informujący o zmianach.
 
 ```sql
-
--- wyniki, kod, zrzuty ekranów, komentarz ...
-
+CREATE OR REPLACE TRIGGER tr_reservation_insert_log
+AFTER INSERT ON reservation
+FOR EACH ROW
+BEGIN
+    INSERT INTO log (reservation_id, log_date, status, no_tickets)
+    VALUES (:NEW.reservation_id, SYSDATE, :NEW.status, :NEW.no_tickets);
+END;
 ```
 
+Zmodyfikowana procedura `p_add_reservation`
+```sql
+create procedure p_add_reservation_4(trip_id int, person_id int, no_tickets int)
+as
+    v_trip_date DATE;
+    v_available_places NUMBER;
+    v_reservation_id NUMBER;
+v_count            NUMBER;
+begin
+
+    SELECT COUNT(*) INTO v_count
+    FROM trip
+    WHERE trip_id = p_add_reservation_4.trip_id;
+    
+    IF v_count = 0 THEN
+        RETURN; 
+    END IF;
+
+    SELECT COUNT(*) INTO v_count
+    FROM person
+    WHERE person_id = p_add_reservation_4.person_id;
+
+    IF v_count = 0 THEN
+        RETURN;
+    END IF;
+    SELECT trip_date, no_available_places 
+    INTO v_trip_date, v_available_places
+    FROM vw_trip
+    WHERE trip_id = p_add_reservation_4.trip_id;
+    
+    IF v_trip_date < SYSDATE THEN
+        RETURN;
+    END IF;
+    
+    IF v_available_places < no_tickets THEN
+        RETURN;
+    END IF;
+    
+    INSERT INTO RESERVATION (trip_id, person_id, status, no_tickets)
+    VALUES (trip_id, person_id, 'N', no_tickets)
+    RETURNING reservation_id INTO v_reservation_id;
+end;
+```
+
+## Trigger obsługujący zmianę statusu rezerwacji `tr_reservation_status_update_log`
+
+Po aktualizacji statusu rezerwacji dodawany jest wpis do tabeli `log` informujący o zmianach
+```sql
+CREATE OR REPLACE TRIGGER tr_reservation_status_update_log
+AFTER UPDATE OF status ON reservation
+FOR EACH ROW
+WHEN (OLD.status != NEW.status)
+BEGIN
+    INSERT INTO log (reservation_id, log_date, status, no_tickets)
+    VALUES (:NEW.reservation_id, SYSDATE, :NEW.status, :NEW.no_tickets);
+END;
+```
+Zmodyfikowana procedura `p_modify_reservation_status`
+```sql
+create or replace procedure p_modify_reservation_status_4(p_reservation_id INT, p_status CHAR)
+as
+    v_current_status CHAR(1);
+    v_trip_id NUMBER;
+    v_no_tickets NUMBER;
+    v_trip_date DATE;
+    v_available_places NUMBER;
+    v_count NUMBER;
+begin
+    SELECT COUNT(*) INTO v_count
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+
+    IF v_count = 0 THEN
+        RETURN;
+    END IF;
+
+    SELECT status, trip_id, no_tickets
+    INTO v_current_status, v_trip_id, v_no_tickets
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+
+
+    IF v_current_status = p_status THEN
+        RETURN;
+    END IF;
+
+
+    IF v_current_status = 'C' AND (p_status = 'P' OR p_status = 'N') THEN
+
+        SELECT COUNT(*) INTO v_count
+        FROM trip
+        WHERE trip_id = v_trip_id;
+
+        IF v_count = 0 THEN
+            RETURN;
+        END IF;
+
+
+        SELECT trip_date, no_available_places
+        INTO v_trip_date, v_available_places
+        FROM vw_trip
+        WHERE trip_id = v_trip_id;
+
+
+        IF v_trip_date < SYSDATE THEN
+            RETURN;
+        END IF;
+
+
+        IF v_available_places < v_no_tickets THEN
+            RETURN;
+        END IF;
+    END IF;
+
+
+    UPDATE reservation
+    SET status = p_status
+    WHERE reservation_id = p_reservation_id;
+end;
+```
+
+
+## Trigger obsługujący zmianę liczby zarezerwowanych/kupionych biletów `tr_reservation_tickets_update_log`
+
+Po aktualizacji liczby zakupionych/zarezerwowanych biletów jest dodawany odpowiedni rekord w tabeli `log`
+
+```sql
+CREATE OR REPLACE TRIGGER tr_reservation_tickets_update_log
+AFTER UPDATE OF no_tickets ON reservation
+FOR EACH ROW
+WHEN (OLD.no_tickets != NEW.no_tickets)
+BEGIN
+    INSERT INTO log (reservation_id, log_date, status, no_tickets)
+    VALUES (:NEW.reservation_id, SYSDATE, :NEW.status, :NEW.no_tickets);
+END;
+```
+Zmodyfikowana procedura `p_modify_reservation`
+
+```sql
+create or replace procedure p_modify_reservation_4(p_reservation_id INT, p_no_tickets INT)
+as
+    v_current_tickets NUMBER;
+    v_status CHAR(1);
+    v_trip_id NUMBER;
+    v_trip_date DATE;
+    v_available_places NUMBER;
+    v_count NUMBER;
+    v_additional_tickets NUMBER;
+begin
+
+    SELECT COUNT(*) INTO v_count
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+
+    IF v_count = 0 THEN
+        RETURN;
+    END IF;
+
+
+    SELECT no_tickets, status, trip_id
+    INTO v_current_tickets, v_status, v_trip_id
+    FROM reservation
+    WHERE reservation_id = p_reservation_id;
+
+
+    IF v_current_tickets = p_no_tickets THEN
+        RETURN;
+    END IF;
+
+
+    IF v_status != 'C' AND p_no_tickets > v_current_tickets THEN
+
+        v_additional_tickets := p_no_tickets - v_current_tickets;
+
+
+        SELECT COUNT(*) INTO v_count
+        FROM trip
+        WHERE trip_id = v_trip_id;
+
+        IF v_count = 0 THEN
+            RETURN;
+        END IF;
+
+
+        SELECT trip_date, no_available_places
+        INTO v_trip_date, v_available_places
+        FROM vw_trip
+        WHERE trip_id = v_trip_id;
+
+
+        IF v_trip_date < SYSDATE THEN
+            RETURN;
+        END IF;
+
+
+        IF v_available_places < v_additional_tickets THEN
+            RETURN;
+        END IF;
+    END IF;
+
+
+    UPDATE reservation
+    SET no_tickets = p_no_tickets
+    WHERE reservation_id = p_reservation_id;
+end;
+```
+
+## Trigger zabraniający usunięcia rezerwacji
+
+W celu archiwizacji trigger `tr_prevent_reservation_delete` zabrania usuwania rezerwacji
+
+```sql
+CREATE OR REPLACE TRIGGER tr_prevent_reservation_delete
+BEFORE DELETE ON reservation
+FOR EACH ROW
+BEGIN
+    RAISE_APPLICATION_ERROR(-20001, 'Deletion of reservations is not allowed');
+END;
+```
 
 
 ---
@@ -578,16 +1121,115 @@ Oczywiście po wprowadzeniu tej zmiany należy "uaktualnić" procedury modyfikuj
 >UWAGA
 Należy stworzyć nowe wersje tych procedur (np. dodając do nazwy dopisek 5 - od numeru zadania). Poprzednie wersje procedur należy pozostawić w celu  umożliwienia weryfikacji ich poprawności. 
 
-Należy przygotować procedury: `p_add_reservation_5`, `p_modify_reservation_status_5`, `p_modify_reservation_status_5`
+Należy przygotować procedury: `p_add_reservation_5`, `p_modify_reservation_status_5`, `p_modify_reservation_5`
 
 
 # Zadanie 5  - rozwiązanie
 
+## Trigger obsługujący dodawanie rezerwacji
+Trigger `tr_insert_reservation` zapewnia, że rezerwacja spełnia wszystkie warunki aby mogła zostać wstawiona do bazy.
 ```sql
+create or replace trigger TR_INSERT_RESERVATION
+    before insert
+    on RESERVATION
+    for each row
+declare
+    v_count int;
+    v_trip_date date;
+    v_available_places int;
+begin
+    select count(*)
+    into v_count
+    from trip t
+    where t.trip_id = :new.trip_id;
 
--- wyniki, kod, zrzuty ekranów, komentarz ...
+    if v_count = 0 then
+        RAISE_APPLICATION_ERROR(-20010, 'Trip does not exist!');
+    end if;
+
+    select count(*)
+    into v_count
+    from person p
+    where p.person_id = :new.person_id;
+
+    if v_count = 0 then
+        RAISE_APPLICATION_ERROR(-20020, 'Person does not exist!');
+    end if;
+
+    select trip_date, no_available_places
+    into v_trip_date, v_available_places
+    from vw_trip
+    where trip_id = :new.trip_id;
+
+    if v_trip_date < SYSDATE then
+        RAISE_APPLICATION_ERROR(-20030, 'Trip date from the past!');
+    end if;
+
+    IF v_available_places < :new.no_tickets then
+        RAISE_APPLICATION_ERROR(-20040, 'No available tickets!');
+    end if;
+
+end;
+```
+
+## Trigger obsługujący zmianę statusu rezerwacji oraz zmianę liczby biletów
+Trigger `tr_reservation_update` odpowiada jednocześnie za zmianę statusu oraz liczby biletów podczas modyfikacji tabeli `RESERVATION`
+
+Zakładamy, że możliwa jest zmiana liczby biletów niezależnie od statusu, jednakże niemożliwa jest modyfikacja jeżeli wycieczka już się odbyła
+```sql
+create trigger TR_RESERVATION_UPDATE
+    before update
+    on RESERVATION
+    for each row
+declare
+    v_count            int;
+    v_trip_date        date;
+    v_available_places int;
+begin
+    select count(*)
+    into v_count
+    from reservation r
+    where r.reservation_id = :new.reservation_id;
+
+    if v_count = 0 then
+        RAISE_APPLICATION_ERROR(-20020, 'Reservation does not exist!');
+    end if;
+
+    select trip_date, no_available_places
+    into v_trip_date, v_available_places
+    from vw_trip
+    where trip_id = :new.trip_id;
+
+
+    if v_trip_date < SYSDATE then
+        RAISE_APPLICATION_ERROR(-20030, 'Trip date from the past!');
+    end if;
+
+    IF :old.status = 'C' AND (:new.status = 'P') THEN
+        SELECT COUNT(*)
+        INTO v_count
+        FROM trip
+        WHERE trip_id = :old.trip_id;
+
+        IF v_count = 0 THEN
+            RETURN;
+        END IF;
+
+        IF v_available_places < :new.no_tickets THEN
+            RAISE_APPLICATION_ERROR(-20040, 'No available tickets!');
+        END IF;
+    END IF;
+
+    if v_available_places < :new.no_tickets - :old.no_tickets then
+        RAISE_APPLICATION_ERROR(-20040, 'No available tickets!');
+    end if;
+
+end;
+
+
 
 ```
+
 
 ---
 # Zadanie 6
