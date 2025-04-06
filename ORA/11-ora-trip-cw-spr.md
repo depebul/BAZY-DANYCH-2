@@ -8,7 +8,7 @@ widoki, funkcje, procedury, triggery
 ---
 
 
-Imiona i nazwiska autorów :
+Imiona i nazwiska autorów : Dawid Żak, Szymon Migas
 
 ---
 <style>
