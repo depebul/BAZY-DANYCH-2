@@ -25,7 +25,7 @@ Imiona i nazwiska autorów : Dawid Żak, Szymon Migas
 
 <style scoped>
  pre {
-    font-size: 7pt;
+    font-size: 8pt;
   }
 </style> 
 
@@ -350,7 +350,7 @@ SET TRANSACTION READ WRITE -- domyślne ustawienia w Oracle Sql;
 -- Dodanie rezerwacji do bazy
 	INSERT INTO reservation (trip_id, person_id, status, no_tickets)
 	VALUES (1, 1, 'P', 2);
-COMMIT
+
 ```
 Oracle vs. MS SQL
 
@@ -599,7 +599,6 @@ Proponowany zestaw procedur można rozbudować wedle uznania/potrzeb
 
 # Zadanie 3  - rozwiązanie
 Procedura `p_add_reservation`
-
 ```sql
 create procedure p_add_reservation(trip_id int, person_id int, no_tickets int)
 as
@@ -645,14 +644,12 @@ begin
     INSERT INTO LOG (reservation_id, log_date, status, no_tickets)
     VALUES (v_reservation_id, SYSDATE, 'N', no_tickets);
     
-    COMMIT;
+    ;
 end;
 
 ```
 Procedura `p_modify_reservation_status`
-
 ```sql
-
 create or replace procedure p_modify_reservation_status(p_reservation_id INT, p_status CHAR)
 as
     v_current_status CHAR(1);
@@ -717,7 +714,7 @@ begin
     INSERT INTO LOG (reservation_id, log_date, status, no_tickets)
     VALUES (p_reservation_id, SYSDATE, p_status, v_no_tickets);
     
-    COMMIT;
+    ;
 end;
 ```
 Procedura `p_modify_reservation`
@@ -791,7 +788,7 @@ begin
     INSERT INTO LOG (reservation_id, log_date, status, no_tickets)
     VALUES (p_reservation_id, SYSDATE, v_status, p_no_tickets);
     
-    COMMIT;
+    ;
 end;
 ```
 
@@ -835,7 +832,7 @@ begin
     SET max_no_places = p_max_no_places
     WHERE trip_id = p_trip_id;
     
-    COMMIT;
+    ;
 end;
 ```
 
@@ -869,7 +866,6 @@ Należy przygotować procedury: `p_add_reservation_4`, `p_modify_reservation_sta
 W celu modyfikacji procedur wystarczy usunąć część definicji procedury z poleceniem `INSERT` na tabeli `LOG`.
 ## Trigger obsługujący dodanie nowej rezerwacji: `tr_reservation_insert_log`
 Po wstawieniu danych do tabeli `reservation` dodaje wpis do tabeli `log` informujący o zmianach.
-
 ```sql
 CREATE OR REPLACE TRIGGER tr_reservation_insert_log
 AFTER INSERT ON reservation
@@ -1005,7 +1001,6 @@ end;
 ## Trigger obsługujący zmianę liczby zarezerwowanych/kupionych biletów `tr_reservation_tickets_update_log`
 
 Po aktualizacji liczby zakupionych/zarezerwowanych biletów jest dodawany odpowiedni rekord w tabeli `log`
-
 ```sql
 CREATE OR REPLACE TRIGGER tr_reservation_tickets_update_log
 AFTER UPDATE OF no_tickets ON reservation
@@ -1017,7 +1012,6 @@ BEGIN
 END;
 ```
 Zmodyfikowana procedura `p_modify_reservation`
-
 ```sql
 create or replace procedure p_modify_reservation_4(p_reservation_id INT, p_no_tickets INT)
 as
@@ -1090,7 +1084,6 @@ end;
 ## Trigger zabraniający usunięcia rezerwacji
 
 W celu archiwizacji trigger `tr_prevent_reservation_delete` zabrania usuwania rezerwacji
-
 ```sql
 CREATE OR REPLACE TRIGGER tr_prevent_reservation_delete
 BEFORE DELETE ON reservation
@@ -1334,7 +1327,6 @@ Należy stworzyć nowe wersje tych widoków/procedur/triggerów (np. dodając do
 
 
 - zmiana struktury tabeli
-
 ```sql
 alter table trip add  
     no_available_places int null
@@ -1429,7 +1421,7 @@ BEGIN
         WHERE trip_id = p_add_reservation_6a.trip_id;
         
         
-        COMMIT;
+        ;
     EXCEPTION
         WHEN OTHERS THEN
             ROLLBACK;
