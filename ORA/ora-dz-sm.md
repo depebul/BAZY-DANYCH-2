@@ -19,13 +19,13 @@ Imiona i nazwiska autorów : Dawid Żak, Szymon Migas
 
 <style scoped>
  li, p {
-    font-size: 14pt;
+    font-size: 9pt;
   }
 </style> 
 
 <style scoped>
  pre {
-    font-size: 10pt;
+    font-size: 7pt;
   }
 </style> 
 
@@ -546,7 +546,8 @@ create or replace function f_available_trips_to(country varchar2, date_from DATE
 as
     result AVAILABLE_TRIPS_INFO_TABLE;
 begin
-    select AVAILABLE_TRIPS_INFO(vw.TRIP_ID, vw.COUNTRY, vw.TRIP_DATE, vw.TRIP_NAME, vw.MAX_NO_PLACES, vw.NO_AVAILABLE_PLACES) bulk collect
+    select AVAILABLE_TRIPS_INFO(vw.TRIP_ID, vw.COUNTRY, vw.TRIP_DATE, vw.TRIP_NAME,
+     vw.MAX_NO_PLACES, vw.NO_AVAILABLE_PLACES) bulk collect
     into result
     from VW_AVAILABLE_TRIP vw
     where
