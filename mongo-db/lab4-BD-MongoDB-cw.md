@@ -2,7 +2,23 @@
 
 Ćwiczenie/zadanie
 
+<style>
+  {
+    font-size: 16pt;
+  }
+</style> 
 
+<style scoped>
+ li, p {
+    font-size: 10pt;
+  }
+</style> 
+
+<style scoped>
+ pre {
+    font-size: 8pt;
+  }
+</style> 
 ---
 
 **Imiona i nazwiska autorów:**
@@ -300,6 +316,140 @@ Dla zachowania przejrzystości i porządku w nazwach kolekcji, zmieniliśmy nazw
 ``` js
 db.OrdersInfo.renameCollection("ordersInfo")
 ```
+Następnie za pomocą agregacji `aggregate` oraz operatora `$lookup` połączyliśmy potrzebne kolekcje, aby uzyskać odpowiednią strukturę dla kolekcji `ordersInfo`:
+``` js
+db.orders.aggregate([
+  {
+    $lookup: {
+      from: "customers",
+      localField: "CustomerID",
+      foreignField: "CustomerID",
+      as: "customerData"
+    }
+  },
+  {
+    $unwind: "$customerData"
+  },
+  {
+    $lookup: {
+      from: "employees",
+      localField: "EmployeeID",
+      foreignField: "EmployeeID",
+      as: "employeeData"
+    }
+  },
+  {
+    $unwind: "$employeeData"
+  },
+  {
+    $lookup: {
+      from: "shippers",
+      localField: "ShipVia",
+      foreignField: "ShipperID",
+      as: "shipperData"
+    }
+  },
+  {
+    $unwind: "$shipperData"
+  },
+  {
+    $lookup: {
+      from: "orderdetails",
+      let: { orderID: "$OrderID" },
+      pipeline: [
+        { 
+          $match: { 
+            $expr: { $eq: ["$OrderID", "$$orderID"] }
+          }
+        },
+        {
+          $lookup: {
+            from: "products",
+            localField: "ProductID",
+            foreignField: "ProductID",
+            as: "productData"
+          }
+        },
+        {
+          $unwind: "$productData"
+        },
+        {
+          $lookup: {
+            from: "categories",
+            localField: "productData.CategoryID",
+            foreignField: "CategoryID",
+            as: "categoryData"
+          }
+        },
+        {
+          $unwind: "$categoryData"
+        },
+        {
+          $project: {
+            _id: 0,
+            UnitPrice: 1,
+            Quantity: 1,
+            Discount: 1,
+            Value: { $multiply: [{ $subtract: [1, "$Discount"] }, { $multiply: ["$UnitPrice", "$Quantity"] }] },
+            product: {
+              ProductID: "$ProductID",
+              ProductName: "$productData.ProductName",
+              QuantityPerUnit: "$productData.QuantityPerUnit",
+              CategoryID: "$productData.CategoryID",
+              CategoryName: "$categoryData.CategoryName"
+            }
+          }
+        }
+      ],
+      as: "Orderdetails"
+    }
+  },
+  {
+    $project: {
+      _id: 1,
+      OrderID: 1,
+      Customer: {
+        CustomerID: "$customerData.CustomerID",
+        CompanyName: "$customerData.CompanyName",
+        City: "$customerData.City",
+        Country: "$customerData.Country"
+      },
+      Employee: {
+        EmployeeID: "$employeeData.EmployeeID",
+        FirstName: "$employeeData.FirstName",
+        LastName: "$employeeData.LastName",
+        Title: "$employeeData.Title"
+      },
+      Dates: {
+        OrderDate: "$OrderDate",
+        RequiredDate: "$RequiredDate"
+      },
+      Orderdetails: 1,
+      Freight: "$Freight",
+      OrderTotal: { 
+        $reduce: {
+          input: "$Orderdetails",
+          initialValue: 0,
+          in: { $add: ["$$value", "$$this.Value"] }
+        }
+      },
+      Shipment: {
+        Shipper: {
+          ShipperID: "$shipperData.ShipperID",
+          CompanyName: "$shipperData.CompanyName"
+        },
+        ShipName: "$ShipName",
+        ShipAddress: "$ShipAddress",
+        ShipCity: "$ShipCity",
+        ShipCountry: "$ShipCountry"
+      }
+    }
+  },
+  {
+    $out: "ordersInfo"
+  }
+]);
+```
 ### Podpunkt b)
 Ponieważ do zdefiniowania walidatora w tym schemacie potrzebujemy części walidatora z podpunktu A, stworzyliśmy nową zmienną zawierającą obkrojoną wersję właściwości pola `Orders`( bez sekcji `Customer` ) :
 ```js
@@ -398,190 +548,57 @@ Mając już gotowy walidator, stworzyliśmy kolekcję o nazwie `customerInfo` (z
 ```js
 db.createCollection("customerInfo", {validator: customerSchema})
 ```
-Poniżej znajduje się gotowy schemat walidacji dla kolekcji `customerInfo`:
-```json
-{
-  "$jsonSchema":{
-    "bsonType":"object",
-    "required":[
-      "CustemID",
-      "CompanyName",
-      "City",
-      "Country",
-      "Orders"
-    ],
-    "properties":{
-      "CustomerID":{
-        "bsonType":"int"
-      },
-      "CompanyName":{
-        "bsonType":"string"
-      },
-      "City":{
-        "bsonType":"string"
-      },
-      "Country":{
-        "bsonType":"string"
-      },
-      "Orders":{
-        "bsonType":"array",
-        "required":[
-          "OrderID",
-          "Employee",
-          "Dates",
-          "Orderdetails",
-          "Freight",
-          "OrderTotal",
-          "Shipment"
-        ],
-        "properties":{
-          "OrderID":{
-            "bsonType":"int"
-          },
-          "Employee":{
-            "bsonType":"object",
-            "required":[
-              "EmployeeID",
-              "FirstName",
-              "LastName",
-              "Title"
-            ],
-            "properties":{
-              "EmployeeID":{
-                "bsonType":"int"
-              },
-              "FirstName":{
-                "bsonType":"string"
-              },
-              "LastName":{
-                "bsonType":"string"
-              },
-              "Title":{
-                "bsonType":"string"
-              }
-            }
-          },
-          "Dates":{
-            "bsonType":"object",
-            "required":[
-              "OrderDate",
-              "RequiredDate"
-            ],
-            "properties":{
-              "OrderDate":{
-                "bsonType":"date"
-              },
-              "RequiredDate":{
-                "bsonType":"date"
-              }
-            }
-          },
-          "Orderdetails":{
-            "bsonType":"array",
-            "items":{
-              "bsonType":"object",
-              "required":[
-                "UnitPrice",
-                "Quantity",
-                "Discount",
-                "Value",
-                "product"
-              ],
-              "properties":{
-                "UnitPrice":{
-                  "bsonType":"double"
-                },
-                "Quantity":{
-                  "bsonType":"int"
-                },
-                "Discount":{
-                  "bsonType":"double"
-                },
-                "Value":{
-                  "bsonType":"double"
-                },
-                "product":{
-                  "bsonType":"object",
-                  "required":[
-                    "ProductID",
-                    "ProductName",
-                    "QuantityPerUnit",
-                    "CategoryID",
-                    "CategoryName"
-                  ],
-                  "properties":{
-                    "ProductID":{
-                      "bsonType":"int"
-                    },
-                    "ProductName":{
-                      "bsonType":"string"
-                    },
-                    "QuantityPerUnit":{
-                      "bsonType":"string"
-                    },
-                    "CategoryID":{
-                      "bsonType":"int"
-                    },
-                    "CategoryName":{
-                      "bsonType":"string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "Freight":{
-            "bsonType":"double"
-          },
-          "OrderTotal":{
-            "bsonType":"double"
-          },
-          "Shipment":{
-            "bsonType":"object",
-            "required":[
-              "Shipper",
-              "ShipName",
-              "ShipAddress",
-              "ShipCity",
-              "ShipCountry"
-            ],
-            "properties":{
-              "Shipper":{
-                "bsonType":"object",
-                "required":[
-                  "ShipperID",
-                  "CompanyName"
-                ],
-                "properties":{
-                  "ShipperID":{
-                    "bsonType":"int"
-                  },
-                  "CompanyName":{
-                    "bsonType":"string"
-                  }
-                }
-              },
-              "ShipName":{
-                "bsonType":"string"
-              },
-              "ShipAddress":{
-                "bsonType":"string"
-              },
-              "ShipCity":{
-                "bsonType":"string"
-              },
-              "ShipCountry":{
-                "bsonType":"string"
-              }
-            }
+Następnie tak jak w podpunkcie A, stworzyliśmy odpowiednie zapytanie agregacyjne, aby wypełnić kolekcję `customerInfo` danymi.
+
+```js
+
+db.customers.aggregate([
+  {
+    $lookup: {
+      from: "ordersInfo",
+      let: { customerID: "$CustomerID" },
+      pipeline: [
+        {
+          $match: {
+            $expr: { $eq: ["$Customer.CustomerID", "$$customerID"] }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            OrderID: 1,
+            Employee: 1,
+            Dates: 1,
+            Orderdetails: 1,
+            Freight: 1,
+            OrderTotal: 1,
+            Shipment: 1
           }
         }
-      }
+      ],
+      as: "Orders"
     }
+  },
+  {
+    $project: {
+      _id: 1,
+      CustomerID: 1,
+      CompanyName: 1,
+      City: 1,
+      Country: 1,
+      Orders: 1
+    }
+  },
+  {
+    $out: "customerInfo"
   }
-}
+]);
 ```
+Komentarz
+---
+Zastosowanie walidatorów w kolekcjach pozwala na zapewnienie spójności danych oraz ich struktury. Dzięki temu, w razie próby dodania dokumenty, który nie spełnia wymagań zdefiniowanych w walidatorze, MongoDB odrzuci taki dokument i poinformuje o błędzie.
 
+Kluczowe dla wygody uzupełniania kolekcji dokumentami było użycie operatora `$out`, który zbiera zebrane podczas agregacji dokumenty i zapisuje je do podanej kolekcji.
 
 ---
 

@@ -97,137 +97,137 @@ use('north0');
 // db.createCollection("ordersInfo", { validator: orderInfoSchema });
 
 
-// db.orders.aggregate([
-//   {
-//     $lookup: {
-//       from: "customers",
-//       localField: "CustomerID",
-//       foreignField: "CustomerID",
-//       as: "customerData"
-//     }
-//   },
-//   {
-//     $unwind: "$customerData"
-//   },
-//   {
-//     $lookup: {
-//       from: "employees",
-//       localField: "EmployeeID",
-//       foreignField: "EmployeeID",
-//       as: "employeeData"
-//     }
-//   },
-//   {
-//     $unwind: "$employeeData"
-//   },
-//   {
-//     $lookup: {
-//       from: "shippers",
-//       localField: "ShipVia",
-//       foreignField: "ShipperID",
-//       as: "shipperData"
-//     }
-//   },
-//   {
-//     $unwind: "$shipperData"
-//   },
-//   {
-//     $lookup: {
-//       from: "orderdetails",
-//       let: { orderID: "$OrderID" },
-//       pipeline: [
-//         { 
-//           $match: { 
-//             $expr: { $eq: ["$OrderID", "$$orderID"] }
-//           }
-//         },
-//         {
-//           $lookup: {
-//             from: "products",
-//             localField: "ProductID",
-//             foreignField: "ProductID",
-//             as: "productData"
-//           }
-//         },
-//         {
-//           $unwind: "$productData"
-//         },
-//         {
-//           $lookup: {
-//             from: "categories",
-//             localField: "productData.CategoryID",
-//             foreignField: "CategoryID",
-//             as: "categoryData"
-//           }
-//         },
-//         {
-//           $unwind: "$categoryData"
-//         },
-//         {
-//           $project: {
-//             _id: 0,
-//             UnitPrice: 1,
-//             Quantity: 1,
-//             Discount: 1,
-//             Value: { $multiply: [{ $subtract: [1, "$Discount"] }, { $multiply: ["$UnitPrice", "$Quantity"] }] },
-//             product: {
-//               ProductID: "$ProductID",
-//               ProductName: "$productData.ProductName",
-//               QuantityPerUnit: "$productData.QuantityPerUnit",
-//               CategoryID: "$productData.CategoryID",
-//               CategoryName: "$categoryData.CategoryName"
-//             }
-//           }
-//         }
-//       ],
-//       as: "Orderdetails"
-//     }
-//   },
-//   {
-//     $project: {
-//       _id: 1,
-//       OrderID: 1,
-//       Customer: {
-//         CustomerID: "$customerData.CustomerID",
-//         CompanyName: "$customerData.CompanyName",
-//         City: "$customerData.City",
-//         Country: "$customerData.Country"
-//       },
-//       Employee: {
-//         EmployeeID: "$employeeData.EmployeeID",
-//         FirstName: "$employeeData.FirstName",
-//         LastName: "$employeeData.LastName",
-//         Title: "$employeeData.Title"
-//       },
-//       Dates: {
-//         OrderDate: "$OrderDate",
-//         RequiredDate: "$RequiredDate"
-//       },
-//       Orderdetails: 1,
-//       Freight: "$Freight",
-//       OrderTotal: { 
-//         $reduce: {
-//           input: "$Orderdetails",
-//           initialValue: 0,
-//           in: { $add: ["$$value", "$$this.Value"] }
-//         }
-//       },
-//       Shipment: {
-//         Shipper: {
-//           ShipperID: "$shipperData.ShipperID",
-//           CompanyName: "$shipperData.CompanyName"
-//         },
-//         ShipName: "$ShipName",
-//         ShipAddress: "$ShipAddress",
-//         ShipCity: "$ShipCity",
-//         ShipCountry: "$ShipCountry"
-//       }
-//     }
-//   },
-//   {
-//     $out: "ordersInfo"
-//   }
-// ]);
+db.orders.aggregate([
+  {
+    $lookup: {
+      from: "customers",
+      localField: "CustomerID",
+      foreignField: "CustomerID",
+      as: "customerData"
+    }
+  },
+  {
+    $unwind: "$customerData"
+  },
+  {
+    $lookup: {
+      from: "employees",
+      localField: "EmployeeID",
+      foreignField: "EmployeeID",
+      as: "employeeData"
+    }
+  },
+  {
+    $unwind: "$employeeData"
+  },
+  {
+    $lookup: {
+      from: "shippers",
+      localField: "ShipVia",
+      foreignField: "ShipperID",
+      as: "shipperData"
+    }
+  },
+  {
+    $unwind: "$shipperData"
+  },
+  {
+    $lookup: {
+      from: "orderdetails",
+      let: { orderID: "$OrderID" },
+      pipeline: [
+        { 
+          $match: { 
+            $expr: { $eq: ["$OrderID", "$$orderID"] }
+          }
+        },
+        {
+          $lookup: {
+            from: "products",
+            localField: "ProductID",
+            foreignField: "ProductID",
+            as: "productData"
+          }
+        },
+        {
+          $unwind: "$productData"
+        },
+        {
+          $lookup: {
+            from: "categories",
+            localField: "productData.CategoryID",
+            foreignField: "CategoryID",
+            as: "categoryData"
+          }
+        },
+        {
+          $unwind: "$categoryData"
+        },
+        {
+          $project: {
+            _id: 0,
+            UnitPrice: 1,
+            Quantity: 1,
+            Discount: 1,
+            Value: { $multiply: [{ $subtract: [1, "$Discount"] }, { $multiply: ["$UnitPrice", "$Quantity"] }] },
+            product: {
+              ProductID: "$ProductID",
+              ProductName: "$productData.ProductName",
+              QuantityPerUnit: "$productData.QuantityPerUnit",
+              CategoryID: "$productData.CategoryID",
+              CategoryName: "$categoryData.CategoryName"
+            }
+          }
+        }
+      ],
+      as: "Orderdetails"
+    }
+  },
+  {
+    $project: {
+      _id: 1,
+      OrderID: 1,
+      Customer: {
+        CustomerID: "$customerData.CustomerID",
+        CompanyName: "$customerData.CompanyName",
+        City: "$customerData.City",
+        Country: "$customerData.Country"
+      },
+      Employee: {
+        EmployeeID: "$employeeData.EmployeeID",
+        FirstName: "$employeeData.FirstName",
+        LastName: "$employeeData.LastName",
+        Title: "$employeeData.Title"
+      },
+      Dates: {
+        OrderDate: "$OrderDate",
+        RequiredDate: "$RequiredDate"
+      },
+      Orderdetails: 1,
+      Freight: "$Freight",
+      OrderTotal: { 
+        $reduce: {
+          input: "$Orderdetails",
+          initialValue: 0,
+          in: { $add: ["$$value", "$$this.Value"] }
+        }
+      },
+      Shipment: {
+        Shipper: {
+          ShipperID: "$shipperData.ShipperID",
+          CompanyName: "$shipperData.CompanyName"
+        },
+        ShipName: "$ShipName",
+        ShipAddress: "$ShipAddress",
+        ShipCity: "$ShipCity",
+        ShipCountry: "$ShipCountry"
+      }
+    }
+  },
+  {
+    $out: "ordersInfo"
+  }
+]);
 
 
 const customerInfoSchema = {
