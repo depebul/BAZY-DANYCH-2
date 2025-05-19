@@ -12,90 +12,7 @@
 // Select the database to use.
 use('north0');
 
-// const orderInfoSchema = {
-//   $jsonSchema: {
-//     bsonType: "object",
-//     required: ["OrderID", "Customer", "Employee", "Dates", "Orderdetails", "Freight", "OrderTotal", "Shipment"],
-//     properties: {
-//       OrderID: { bsonType: "int" },
-//       Customer: {
-//         bsonType: "object",
-//         required: ["CustomerID", "CompanyName", "City", "Country"],
-//         properties: {
-//           CustomerID: { bsonType: "string" },
-//           CompanyName: { bsonType: "string" },
-//           City: { bsonType: "string" },
-//           Country: { bsonType: "string" }
-//         }
-//       },
-//       Employee: {
-//         bsonType: "object",
-//         required: ["EmployeeID", "FirstName", "LastName", "Title"],
-//         properties: {
-//           EmployeeID: { bsonType: "int" },
-//           FirstName: { bsonType: "string" },
-//           LastName: { bsonType: "string" },
-//           Title: { bsonType: "string" }
-//         }
-//       },
-//       Dates: {
-//         bsonType: "object",
-//         required: ["OrderDate", "RequiredDate"],
-//         properties: {
-//           OrderDate: { bsonType: "date" },
-//           RequiredDate: { bsonType: "date" }
-//         }
-//       },
-//       Orderdetails: {
-//         bsonType: "array",
-//         items: {
-//           bsonType: "object",
-//           required: ["UnitPrice", "Quantity", "Discount", "Value", "product"],
-//           properties: {
-//             UnitPrice: { bsonType: "double" },
-//             Quantity: { bsonType: "int" },
-//             Discount: { bsonType: "double" },
-//             Value: { bsonType: "double" },
-//             product: {
-//               bsonType: "object",
-//               required: ["ProductID", "ProductName", "QuantityPerUnit", "CategoryID", "CategoryName"],
-//               properties: {
-//                 ProductID: { bsonType: "int" },
-//                 ProductName: { bsonType: "string" },
-//                 QuantityPerUnit: { bsonType: "string" },
-//                 CategoryID: { bsonType: "int" },
-//                 CategoryName: { bsonType: "string" }
-//               }
-//             }
-//           }
-//         }
-//       },
-//       Freight: { bsonType: "double" },
-//       OrderTotal: { bsonType: "double" },
-//       Shipment: {
-//         bsonType: "object",
-//         required: ["Shipper", "ShipName", "ShipAddress", "ShipCity", "ShipCountry"],
-//         properties: {
-//           Shipper: {
-//             bsonType: "object",
-//             required: ["ShipperID", "CompanyName"],
-//             properties: {
-//               ShipperID: { bsonType: "int" },
-//               CompanyName: { bsonType: "string" }
-//             }
-//           },
-//           ShipName: { bsonType: "string" },
-//           ShipAddress: { bsonType: "string" },
-//           ShipCity: { bsonType: "string" },
-//           ShipCountry: { bsonType: "string" }
-//         }
-//       }
-//     }
-//   }
-// };
-
-// db.createCollection("ordersInfo", { validator: orderInfoSchema });
-
+// Zadanie A
 
 db.orders.aggregate([
   {
@@ -229,93 +146,7 @@ db.orders.aggregate([
   }
 ]);
 
-
-const customerInfoSchema = {
-  $jsonSchema: {
-    bsonType: "object",
-    required: ["CustomerID", "CompanyName", "City", "Country", "Orders"],
-    properties: {
-      CustomerID: { bsonType: "string" },
-      CompanyName: { bsonType: "string" },
-      City: { bsonType: "string" },
-      Country: { bsonType: "string" },
-      Orders: {
-        bsonType: "array",
-        items: {
-          bsonType: "object",
-          required: ["OrderID", "Employee", "Dates", "Orderdetails", "Freight", "OrderTotal", "Shipment"],
-          properties: {
-            OrderID: { bsonType: "int" },
-            Employee: {
-              bsonType: "object",
-              required: ["EmployeeID", "FirstName", "LastName", "Title"],
-              properties: {
-                EmployeeID: { bsonType: "int" },
-                FirstName: { bsonType: "string" },
-                LastName: { bsonType: "string" },
-                Title: { bsonType: "string" }
-              }
-            },
-            Dates: {
-              bsonType: "object",
-              required: ["OrderDate", "RequiredDate"],
-              properties: {
-                OrderDate: { bsonType: "date" },
-                RequiredDate: { bsonType: "date" }
-              }
-            },
-            Orderdetails: {
-              bsonType: "array",
-              items: {
-                bsonType: "object",
-                required: ["UnitPrice", "Quantity", "Discount", "Value", "product"],
-                properties: {
-                  UnitPrice: { bsonType: "double" },
-                  Quantity: { bsonType: "int" },
-                  Discount: { bsonType: "double" },
-                  Value: { bsonType: "double" },
-                  product: {
-                    bsonType: "object",
-                    required: ["ProductID", "ProductName", "QuantityPerUnit", "CategoryID", "CategoryName"],
-                    properties: {
-                      ProductID: { bsonType: "int" },
-                      ProductName: { bsonType: "string" },
-                      QuantityPerUnit: { bsonType: "string" },
-                      CategoryID: { bsonType: "int" },
-                      CategoryName: { bsonType: "string" }
-                    }
-                  }
-                }
-              }
-            },
-            Freight: { bsonType: "double" },
-            OrderTotal: { bsonType: "double" },
-            Shipment: {
-              bsonType: "object",
-              required: ["Shipper", "ShipName", "ShipAddress", "ShipCity", "ShipCountry"],
-              properties: {
-                Shipper: {
-                  bsonType: "object",
-                  required: ["ShipperID", "CompanyName"],
-                  properties: {
-                    ShipperID: { bsonType: "int" },
-                    CompanyName: { bsonType: "string" }
-                  }
-                },
-                ShipName: { bsonType: "string" },
-                ShipAddress: { bsonType: "string" },
-                ShipCity: { bsonType: "string" },
-                ShipCountry: { bsonType: "string" }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-};
-
-db.createCollection("customerInfo", { validator: customerInfoSchema });
+// Zadanie B
 
 db.customers.aggregate([
   {
@@ -358,3 +189,519 @@ db.customers.aggregate([
     $out: "customerInfo"
   }
 ]);
+
+// Zadanie C wersja oryginalna
+
+db.customers.aggregate([
+
+  {
+    $lookup: {
+      from: "orders",
+      localField: "CustomerID",
+      foreignField: "CustomerID",
+      as: "orders"
+    }
+  },
+
+  { $unwind: { path: "$orders", preserveNullAndEmptyArrays: true } },
+  
+
+  {
+    $match: {
+      "orders.OrderDate": {
+        $gte: new Date("1997-01-01"),
+        $lt: new Date("1998-01-01")
+      }
+    }
+  },
+  
+
+  {
+    $lookup: {
+      from: "orderdetails",
+      localField: "orders.OrderID",
+      foreignField: "OrderID",
+      as: "details"
+    }
+  },
+  { $unwind: { path: "$details", preserveNullAndEmptyArrays: true } },
+  
+
+  {
+    $lookup: {
+      from: "products",
+      localField: "details.ProductID",
+      foreignField: "ProductID",
+      as: "product"
+    }
+  },
+  { $unwind: { path: "$product", preserveNullAndEmptyArrays: true } },
+  
+
+  {
+    $lookup: {
+      from: "categories",
+      localField: "product.CategoryID",
+      foreignField: "CategoryID",
+      as: "category"
+    }
+  },
+  { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
+  
+
+  {
+    $match: {
+      "category.CategoryName": "Confections"
+    }
+  },
+  
+
+  {
+    $addFields: {
+      value: {
+        $multiply: [
+          "$details.UnitPrice",
+          "$details.Quantity",
+          { $subtract: [1, "$details.Discount"] }
+        ]
+      }
+    }
+  },
+  
+
+  {
+    $group: {
+      _id: "$CustomerID",
+      CustomerID: { $first: "$CustomerID" },
+      CompanyName: { $first: "$CompanyName" },
+      ConfectionsSale97: { $sum: "$value" }
+    }
+  },
+  
+
+  { $sort: { CustomerID: 1 } }
+]);
+
+// Zadanie C wersja OrderInfo
+
+db.ordersInfo.aggregate([
+
+  {
+    $match: {
+      "Dates.OrderDate": {
+        $gte: new Date("1997-01-01"),
+        $lt: new Date("1998-01-01")
+      }
+    }
+  },
+  
+
+  { $unwind: "$Orderdetails" },
+  
+
+  {
+    $match: {
+      "Orderdetails.product.CategoryName": "Confections"
+    }
+  },
+  
+
+  {
+    $group: {
+      _id: "$Customer.CustomerID",
+      CustomerID: { $first: "$Customer.CustomerID" },
+      CompanyName: { $first: "$Customer.CompanyName" },
+      ConfectionsSale97: { $sum: "$Orderdetails.Value" }
+    }
+  },
+  
+
+  { $sort: { CustomerID: 1 } }
+]);
+
+// Zadanie C wersja customerInfo
+
+db.customerInfo.aggregate([
+
+  { $unwind: "$Orders" },
+  
+
+  {
+    $match: {
+      "Orders.Dates.OrderDate": {
+        $gte: new Date("1997-01-01"),
+        $lt: new Date("1998-01-01")
+      }
+    }
+  },
+  
+
+  { $unwind: "$Orders.Orderdetails" },
+  
+
+  {
+    $match: {
+      "Orders.Orderdetails.product.CategoryName": "Confections"
+    }
+  },
+  
+
+  {
+    $group: {
+      _id: "$CustomerID",
+      CustomerID: { $first: "$CustomerID" },
+      CompanyName: { $first: "$CompanyName" },
+      ConfectionsSale97: { $sum: "$Orders.Orderdetails.Value" }
+    }
+  },
+  
+
+  { $sort: { CustomerID: 1 } }
+]);
+
+// Zadanie D Oryginalne
+
+db.customers.aggregate([
+
+  {
+    $lookup: {
+      from: "orders",
+      localField: "CustomerID",
+      foreignField: "CustomerID",
+      as: "orders"
+    }
+  },
+
+  { $unwind: { path: "$orders", preserveNullAndEmptyArrays: false } },
+  
+
+  {
+    $lookup: {
+      from: "orderdetails",
+      localField: "orders.OrderID",
+      foreignField: "OrderID",
+      as: "details"
+    }
+  },
+
+  { $unwind: { path: "$details", preserveNullAndEmptyArrays: false } },
+  
+
+  {
+    $addFields: {
+      year: { $year: "$orders.OrderDate" },
+      month: { $month: "$orders.OrderDate" },
+      saleValue: {
+        $multiply: [
+          "$details.UnitPrice", 
+          "$details.Quantity", 
+          { $subtract: [1, "$details.Discount"] }
+        ]
+      }
+    }
+  },
+  
+
+  {
+    $group: {
+      _id: {
+        customerID: "$CustomerID",
+        year: "$year",
+        month: "$month"
+      },
+      Total: { $sum: "$saleValue" },
+      CompanyName: { $first: "$CompanyName" }
+    }
+  },
+  
+
+  {
+    $sort: {
+      "_id.year": 1,
+      "_id.month": 1
+    }
+  },
+  
+
+  {
+    $group: {
+      _id: "$_id.customerID",
+      CustomerID: { $first: "$_id.customerID" },
+      CompanyName: { $first: "$CompanyName" },
+      Sale: {
+        $push: {
+          Year: "$_id.year",
+          Month: "$_id.month",
+          Total: { $round: ["$Total", 2] }
+        }
+      }
+    }
+  },
+  
+
+  { $sort: { CustomerID: 1 } }
+]);
+
+// Zadanie D OrdersInfo
+
+db.ordersInfo.aggregate([
+
+  { $unwind: "$Orderdetails" },
+  
+
+  {
+    $addFields: {
+      year: { $year: "$Dates.OrderDate" },
+      month: { $month: "$Dates.OrderDate" }
+    }
+  },
+  
+
+  {
+    $group: {
+      _id: {
+        customerID: "$Customer.CustomerID",
+        year: "$year",
+        month: "$month"
+      },
+      Total: { $sum: "$Orderdetails.Value" },
+      CompanyName: { $first: "$Customer.CompanyName" }
+    }
+  },
+  
+
+  {
+    $sort: {
+      "_id.year": 1,
+      "_id.month": 1
+    }
+  },
+  
+
+  {
+    $group: {
+      _id: "$_id.customerID",
+      CustomerID: { $first: "$_id.customerID" },
+      CompanyName: { $first: "$CompanyName" },
+      Sale: {
+        $push: {
+          Year: "$_id.year",
+          Month: "$_id.month",
+          Total: { $round: ["$Total", 2] }
+        }
+      }
+    }
+  },
+  
+
+  { $sort: { CustomerID: 1 } }
+]);
+
+// Zadanie D CustomerInfo
+
+db.customerInfo.aggregate([
+
+  { $unwind: "$Orders" },
+  
+
+  { $unwind: "$Orders.Orderdetails" },
+  
+
+  {
+    $addFields: {
+      year: { $year: "$Orders.Dates.OrderDate" },
+      month: { $month: "$Orders.Dates.OrderDate" }
+    }
+  },
+  
+
+  {
+    $group: {
+      _id: {
+        customerID: "$CustomerID",
+        year: "$year",
+        month: "$month"
+      },
+      Total: { $sum: "$Orders.Orderdetails.Value" },
+      CompanyName: { $first: "$CompanyName" }
+    }
+  },
+  
+
+  {
+    $sort: {
+      "_id.year": 1,
+      "_id.month": 1
+    }
+  },
+  
+
+  {
+    $group: {
+      _id: "$_id.customerID",
+      CustomerID: { $first: "$_id.customerID" },
+      CompanyName: { $first: "$CompanyName" },
+      Sale: {
+        $push: {
+          Year: "$_id.year",
+          Month: "$_id.month",
+          Total: { $round: ["$Total", 2] }
+        }
+      }
+    }
+  },
+  
+
+  { $sort: { CustomerID: 1 } }
+]);
+
+// Zadanie E
+
+
+const session = db.getMongo().startSession();
+session.startTransaction();
+
+try {
+
+  const ordersCollection = session.getDatabase("north0").orders;
+  const orderDetailsCollection = session.getDatabase("north0").orderdetails;
+  const ordersInfoCollection = session.getDatabase("north0").ordersInfo;
+  const customerInfoCollection = session.getDatabase("north0").customerInfo;
+  
+
+  const maxOrderId = ordersCollection.find({}, { OrderID: 1 }).sort({ OrderID: -1 }).limit(1).toArray()[0].OrderID;
+  const newOrderId = maxOrderId + 1;
+  const customer = session.getDatabase("north0").customers.findOne({ CustomerID: "ALFKI" });
+  const employee = session.getDatabase("north0").employees.findOne({ EmployeeID: 5 });
+  const chaiProduct = session.getDatabase("north0").products.findOne({ ProductName: "Chai" });
+  const ikuraProduct = session.getDatabase("north0").products.findOne({ ProductName: "Ikura" });
+  const chaiCategory = session.getDatabase("north0").categories.findOne({ CategoryID: chaiProduct.CategoryID });
+  const ikuraCategory = session.getDatabase("north0").categories.findOne({ CategoryID: ikuraProduct.CategoryID });
+  const shipper = session.getDatabase("north0").shippers.findOne({ ShipperID: 1 });
+  
+
+  const chaiValue = chaiProduct.UnitPrice * 5 * (1 - 0.0);
+  const ikuraValue = ikuraProduct.UnitPrice * 2 * (1 - 0.05);
+  const orderTotal = chaiValue + ikuraValue;
+  
+
+  const orderDoc = {
+    OrderID: newOrderId,
+    CustomerID: "ALFKI",
+    EmployeeID: 5,
+    OrderDate: new Date(),
+    RequiredDate: new Date(new Date().setDate(new Date().getDate() + 7)),
+    ShippedDate: null,
+    ShipVia: shipper.ShipperID,
+    Freight: 10.50,
+    ShipName: customer.CompanyName,
+    ShipAddress: customer.Address,
+    ShipCity: customer.City,
+    ShipRegion: customer.Region,
+    ShipPostalCode: customer.PostalCode,
+    ShipCountry: customer.Country
+  };
+  ordersCollection.insertOne(orderDoc);
+  
+
+  orderDetailsCollection.insertMany([
+    {
+      OrderID: newOrderId,
+      ProductID: chaiProduct.ProductID,
+      UnitPrice: chaiProduct.UnitPrice,
+      Quantity: 5,
+      Discount: 0.0
+    },
+    {
+      OrderID: newOrderId,
+      ProductID: ikuraProduct.ProductID,
+      UnitPrice: ikuraProduct.UnitPrice,
+      Quantity: 2,
+      Discount: 0.05
+    }
+  ]);
+  
+
+  const orderInfoDoc = {
+    OrderID: newOrderId,
+    Customer: {
+      CustomerID: customer.CustomerID,
+      CompanyName: customer.CompanyName,
+      City: customer.City,
+      Country: customer.Country
+    },
+    Employee: {
+      EmployeeID: employee.EmployeeID,
+      FirstName: employee.FirstName,
+      LastName: employee.LastName,
+      Title: employee.Title
+    },
+    Dates: {
+      OrderDate: new Date(),
+      RequiredDate: new Date(new Date().setDate(new Date().getDate() + 7))
+    },
+    Orderdetails: [
+      {
+        UnitPrice: chaiProduct.UnitPrice,
+        Quantity: 5,
+        Discount: 0.0,
+        Value: chaiValue,
+        product: {
+          ProductID: chaiProduct.ProductID,
+          ProductName: chaiProduct.ProductName,
+          QuantityPerUnit: chaiProduct.QuantityPerUnit,
+          CategoryID: chaiProduct.CategoryID,
+          CategoryName: chaiCategory.CategoryName
+        }
+      },
+      {
+        UnitPrice: ikuraProduct.UnitPrice,
+        Quantity: 2,
+        Discount: 0.05,
+        Value: ikuraValue,
+        product: {
+          ProductID: ikuraProduct.ProductID,
+          ProductName: ikuraProduct.ProductName,
+          QuantityPerUnit: ikuraProduct.QuantityPerUnit,
+          CategoryID: ikuraProduct.CategoryID,
+          CategoryName: ikuraCategory.CategoryName
+        }
+      }
+    ],
+    Freight: 10.50,
+    OrderTotal: orderTotal,
+    Shipment: {
+      Shipper: {
+        ShipperID: shipper.ShipperID,
+        CompanyName: shipper.CompanyName
+      },
+      ShipName: customer.CompanyName,
+      ShipAddress: customer.Address,
+      ShipCity: customer.City,
+      ShipCountry: customer.Country
+    }
+  };
+  ordersInfoCollection.insertOne(orderInfoDoc);
+  
+
+  const orderForCustomerInfo = { ...orderInfoDoc };
+  delete orderForCustomerInfo.Customer;
+  
+  customerInfoCollection.updateOne(
+    { CustomerID: "ALFKI" },
+    { $push: { Orders: orderForCustomerInfo } }
+  );
+  
+
+  session.commitTransaction();
+} catch (error) {
+
+  session.abortTransaction();
+  throw error;
+} finally {
+
+  session.endSession();
+}
+
+// Zadanie F
+
