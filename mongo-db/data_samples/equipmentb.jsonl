@@ -1,0 +1,2 @@
+{"_id":{"$oid":"60b0b0b0b0b0b0b0b0b0b001"},"name":"Młotowiertarka udarowa","category":"Elektronarzędzia","manufacturer":"Bosch","model":"GBH 2-26","price_per_day":50.99,"availability":true,"location":{"warehouse":"Kraków Południe","address":"ul. Magazynowa 1"}}
+{"_id":{"$oid":"60b0b0b0b0b0b0b0b0b0b002"},"name":"Betoniarka","category":"Maszyny Budowlane","manufacturer":"Belle","model":"B150","price_per_day":80.99,"availability":true,"location":{"warehouse":"Warszawa Centrum","address":"ul. Centralna 5"}}
