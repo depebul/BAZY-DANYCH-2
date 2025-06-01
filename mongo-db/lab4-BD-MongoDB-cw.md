@@ -1575,7 +1575,6 @@ try {
 ```
 
 ### Podpunkt f)
-
 ```js
 const maxOrderId = db.orders.find({ CustomerID: "ALFKI" }, { OrderID: 1 })
   .sort({ OrderID: -1 })
@@ -1728,13 +1727,694 @@ Do sprawozdania należy kompletny zrzut wykonanych/przygotowanych baz danych (ta
 
 ## Zadanie 2  - rozwiązanie
 
-> Wyniki: 
-> 
-> przykłady, kod, zrzuty ekranów, komentarz ...
+Do wykonania tego zadania postanowiliśmy stworzyć strukturę bazy danych dla naszego projektu, którego celem jest stworzenie aplikacji do zarządzania wynajmem sprzędu budowlanego.
+
+Głównym założeniem takiego systemu będzie możliwość monitorowania dostępności sprzętu budowlanego, jego stanu oraz historii wynajmu. Użytkownicy będą mogli przeglądać dostępne maszyny oraz składać zamówienia na wynajem.
+
+Możliwe będzie również dodawanie ocen dla poszczególnych maszyn dostępnych w systemie.
+
+### Propozycja A
+Naszą pierwszą propozycją jest stworzenie bazy danych, w której będziemy przetrzymywać jak najwięcej informacji w dokumencie opisującym sprzęt budowlany została ona nazwana `equipment`. Redundancja danych w tej kolekcji pozwoli na szybsze przeszukiwanie i uzyskiwanie najczęściej używanych informacji.
+
+Dokument w tej kolekcji będzie wyglądał następująco:
+
+```json
+{
+  "_id": ObjectId("..."),
+  "name": "Młotowiertarka udarowa",
+  "category": "Elektronarzędzia",
+  "manufacturer": "Bosch",
+  "model": "GBH 2-26",
+  "price_per_day": 50.00,
+  "availability": true,
+  "location": {
+    "warehouse": "Kraków Południe",
+    "address": "ul. Magazynowa 1"
+  },
+  "rentals": [
+    {
+      "rental_id": ObjectId("..."),
+      "client_id": ObjectId("..."),
+      "rental_date": ISODate("2025-05-20T08:00:00Z"),
+      "planned_return_date": ISODate("2025-05-22T17:00:00Z"),
+      "actual_return_date": null,
+      "notes": "Brak uszkodzeń"
+    },
+    {
+      "rental_id": ObjectId("..."),
+      "client_id": ObjectId("..."),
+      "rental_date": ISODate("2025-05-25T10:00:00Z"),
+      "planned_return_date": ISODate("2025-05-27T16:00:00Z"),
+      "actual_return_date": ISODate("2025-05-27T15:30:00Z"),
+      "notes": "Lekkie zarysowania"
+    }
+  ]
+}
+
+```
+
+Dodatkowo stworzone zostały kolekcje `clients`, `rentals` oraz `reviews`, które będą przechowywać informacje o klientach, wynajmach oraz ocenach sprzętu.
+
+Ich przykładowe dokumenty wyglądają następująco:
+
+Kolekcja `clients`
+```json
+{
+  "_id": ObjectId("..."),
+  "first_name": "Jan",
+  "last_name": "Kowalski",
+  "email": "jan.kowalski@example.com",
+  "phone": "123-456-789"
+}
+```
+
+Kolekcja `rentals`
+```json
+{
+  "_id": ObjectId("..."),
+  "equipment_id": ObjectId("..."), // Referencja do kolekcji Equipment
+  "client_id": ObjectId("..."), // Referencja do kolekcji Clients
+  "rental_date": ISODate("2025-05-21T09:00:00Z"),
+  "planned_return_date": ISODate("2025-05-23T18:00:00Z"),
+  "actual_return_date": null,
+  "notes": "Sprawna"
+}
+```
+Kolekcja `reviews`
+```json
+{
+  "_id": ObjectId("..."),
+  "equipment_id": ObjectId("..."),
+  "client_id": ObjectId("..."),
+  "rating": 4,
+  "comment": "Fajne, fajne",
+  "date": ISODate("2025-05-20T12:00:00Z")
+}
+```
+
+Poniżej przedstawiliśmy schematy walidacji dla każdej z kolekcji:
+
+Kolekcja `equipment`
+```json
+{
+  "$jsonSchema": {
+    "bsonType": "object",
+    "required": ["name", "category", "price_per_day", "availability", "location"],
+    "properties": {
+      "_id": { "bsonType": "objectId" },
+      "name": { "bsonType": "string" },
+      "category": { "bsonType": "string" },
+      "manufacturer": { "bsonType": "string" },
+      "model": { "bsonType": "string" },
+      "price_per_day": { "bsonType": "double" },
+      "availability": { "bsonType": "bool" },
+      "location": {
+        "bsonType": "object",
+        "required": ["warehouse"],
+        "properties": {
+          "warehouse": { "bsonType": "string" },
+          "address": { "bsonType": "string" }
+        }
+      },
+      "rentals": {
+        "bsonType": "array",
+        "items": {
+          "bsonType": "object",
+          "required": ["client_id", "rental_date", "planned_return_date"],
+          "properties": {
+            "rental_id": { "bsonType": "objectId" },
+            "client_id": { "bsonType": "objectId" },
+            "rental_date": { "bsonType": "date" },
+            "planned_return_date": { "bsonType": "date" },
+            "actual_return_date": { "bsonType": ["date", "null"] },
+            "notes": { "bsonType": "string" }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Kolekcja `clients`
+
+```json
+{
+  "$jsonSchema": {
+    "bsonType": "object",
+    "required": ["first_name", "last_name", "email", "phone"],
+    "properties": {
+      "_id": { "bsonType": "objectId" },
+      "first_name": { "bsonType": "string" },
+      "last_name": { "bsonType": "string" },
+      "email": { 
+        "bsonType": "string",
+        "pattern": "^.+@.+\\..+$"
+      },
+      "phone": { 
+        "bsonType": "string",
+        "pattern": "^\\d{3}-\\d{3}-\\d{3}$"
+      }
+    }
+  }
+}
+```
+
+Kolekcja `rentals`
+
+```json
+{
+  "$jsonSchema": {
+    "bsonType": "object",
+    "required": ["equipment_id", "client_id", "rental_date", "planned_return_date"],
+    "properties": {
+      "_id": { "bsonType": "objectId" },
+      "equipment_id": { "bsonType": "objectId" },
+      "client_id": { "bsonType": "objectId" },
+      "rental_date": { "bsonType": "date" },
+      "planned_return_date": { "bsonType": "date" },
+      "actual_return_date": { "bsonType": ["date", "null"] },
+      "notes": { "bsonType": ["string", "null"] }
+    }
+  }
+}
+```
+
+Kolekcja `reviews`
+
+```json
+{
+  "$jsonSchema": {
+    "bsonType": "object",
+    "required": ["equipment_id", "client_id", "rating", "comment", "date"],
+    "properties": {
+      "_id": { "bsonType": "objectId" },
+      "equipment_id": { "bsonType": "objectId" },
+      "client_id": { "bsonType": "objectId" },
+      "rating": { 
+        "bsonType": "int",
+        "minimum": 1,
+        "maximum": 5
+      },
+      "comment": { 
+        "bsonType": ["string", "null"]
+      },
+      "date": { 
+        "bsonType": ["date", "null"]
+      }
+    }
+  }
+}
+```
+
+### Zalety i wady (A)
+- Zalety
+  - Wszystkie informacje o danym sprzęcie i jego wypożyczeniach znajdują się w jednym dokumencie, co może przyspieszyć odczyt informacji o konkretnym sprzęcie i jego historii wypożyczeń.
+  - Wiele zapytań dotyczących historii wypożyczeń danego sprzętu można wykonać na jednym dokumencie.
+- Wady
+  - W przypadku dużej liczby wypożyczeń, dokument może stać się bardzo duży, co może prowadzić do problemów z wydajnością.
+  - Zmiany w historii wypożyczeń mogą wymagać aktualizacji całego dokumentu, co może być kosztowne w przypadku dużych zbiorów danych oraz może prowadzić do problemów z współbieżnością.
+  - Potrzebujemy dodatkowych kolekcji do przechowywania informacji o klientach i ocenach, co może prowadzić do redundancji danych.
+
+### Propozycja B
+W drugiej propozycji zdecydowaliśmy się na bardziej rozdzieloną strukturę, w której informacje o sprzęcie, klientach i wypożyczeniach są przechowywane w osobnych kolekcjach. W tej wersji każda kolekcja będzie miała swoje własne dokumenty, a relacje między nimi będą realizowane za pomocą referencji.
+
+Dokument w kolekcji `equipment` będzie wyglądał następująco:
+
+```json
+{
+  "_id": ObjectId("..."),
+  "name": "Młotowiertarka udarowa",
+  "category": "Elektronarzędzia",
+  "manufacturer": "Bosch",
+  "model": "GBH 2-26",
+  "price_per_day": 50.00,
+  "availability": true,
+  "location": {
+    "warehouse": "Kraków Południe",
+    "address": "ul. Magazynowa 1"
+  }
+}
+```
+
+Dokument w kolekcji `clients`:
+
+```json
+{
+  "_id": ObjectId("..."),
+  "first_name": "Jan",
+  "last_name": "Kowalski",
+  "email": "jan.kowalski@example.com",
+  "phone": "123-456-789"
+}
+```
+
+Dokument w kolekcji `rentals`:
+
+```json
+{
+  "_id": ObjectId("..."),
+  "equipment_id": ObjectId("..."), 
+  "client_id": ObjectId("..."),
+  "rental_date": ISODate("2025-05-21T09:00:00Z"),
+  "planned_return_date": ISODate("2025-05-23T18:00:00Z"),
+  "actual_return_date": null,
+  "notes": "Sprawna"
+}
+```
+
+Dokument w kolekcji `reviews`:
+
+```json
+{
+  "_id": ObjectId("..."),
+  "equipment_id": ObjectId("..."),
+  "client_id": ObjectId("..."),
+  "rating": 4,
+  "comment": "Fajne, fajne",
+  "date": ISODate("2025-05-20T12:00:00Z")
+}
+```
+
+Schematy walidacji dla każdej z kolekcji:
+Kolekcja `equipment`
+```json
+{
+  "$jsonSchema": {
+    "bsonType": "object",
+    "required": ["name", "category", "price_per_day", "availability", "location"],
+    "properties": {
+      "_id": { "bsonType": "objectId" },
+      "name": { "bsonType": "string" },
+      "category": { "bsonType": "string" },
+      "manufacturer": { "bsonType": "string" },
+      "model": { "bsonType": "string" },
+      "price_per_day": { "bsonType": "double" },
+      "availability": { "bsonType": "bool" },
+      "location": {
+        "bsonType": "object",
+        "required": ["warehouse"],
+        "properties": {
+          "warehouse": { "bsonType": "string" },
+          "address": { "bsonType": "string" }
+        }
+      }
+    }
+  }
+}
+```
+
+Schematy walidacji dla pozostałych kolekcji są takie same jak w propozycji A.
+
+### Zalety i wady (B)
+- Zalety
+  - Mniejsze dokumenty, co może poprawić wydajność operacji zapisu i aktualizacji.  
+  - Możliwość łatwego dodawania nowych pól do dokumentów bez wpływu na inne kolekcje.
+  - Łatwiejsze zarządzanie historią wypożyczeń, ponieważ każda transakcja jest przechowywana w osobnym dokumencie.
+- Wady
+  - Wymaga więcej zapytań do bazy danych, aby uzyskać pełne informacje o sprzęcie i jego historii wypożyczeń.
+  - Złożoność zapytań wzrasta, ponieważ trzeba łączyć dane z różnych kolekcji.
+
+### Wypełnianie przykładowymi danymi
+Poniżej znajdują się wyniki poleceń `db.<kolekcja>.find()` dla każdej z kolekcji.
+
+Tabela `equipment` w przykładzie A:
+```json
+[
+  {
+    "_id": {"$oid": "60b0b0b0b0b0b0b0b0b0b001"},
+    "availability": true,
+    "category": "Elektronarzędzia",
+    "location": {
+      "warehouse": "Kraków Południe",
+      "address": "ul. Magazynowa 1"
+    },
+    "manufacturer": "Bosch",
+    "model": "GBH 2-26",
+    "name": "Młotowiertarka udarowa",
+    "price_per_day": 50.99,
+    "rentals": [
+      {
+        "rental_id": {"$oid": "60c0c0c0c0c0c0c0c0c0c001"},
+        "client_id": {"$oid": "60a0a0a0a0a0a0a0a0a0a001"},
+        "rental_date": {"$date": "2025-05-20T08:00:00.000Z"},
+        "planned_return_date": {"$date": "2025-05-22T17:00:00.000Z"},
+        "actual_return_date": null,
+        "notes": "Brak uszkodzeń"
+      },
+      {
+        "rental_id": {"$oid": "60c0c0c0c0c0c0c0c0c0c002"},
+        "client_id": {"$oid": "60a0a0a0a0a0a0a0a0a0a002"},
+        "rental_date": {"$date": "2025-05-25T10:00:00.000Z"},
+        "planned_return_date": {"$date": "2025-05-27T16:00:00.000Z"},
+        "actual_return_date": {"$date": "2025-05-27T15:30:00.000Z"},
+        "notes": "Lekkie zarysowania"
+      }
+    ]
+  },
+  {
+    "_id": {"$oid": "60b0b0b0b0b0b0b0b0b0b002"},
+    "availability": true,
+    "category": "Maszyny Budowlane",
+    "location": {
+      "warehouse": "Warszawa Centrum",
+      "address": "ul. Centralna 5"
+    },
+    "manufacturer": "Belle",
+    "model": "B150",
+    "name": "Betoniarka",
+    "price_per_day": 80.99,
+    "rentals": [
+      {
+        "rental_id": {"$oid": "60c0c0c0c0c0c0c0c0c0c003"},
+        "client_id": {"$oid": "60a0a0a0a0a0a0a0a0a0a001"},
+        "rental_date": {"$date": "2025-06-01T09:00:00.000Z"},
+        "planned_return_date": {"$date": "2025-06-03T18:00:00.000Z"},
+        "actual_return_date": null,
+        "notes": "Sprawna"
+      }
+    ]
+  }
+]
+```
+
+Kolekcja `equipment` w przykładzie B:
+```json
+[
+  {
+    "_id": {"$oid": "60b0b0b0b0b0b0b0b0b0b001"},
+    "availability": true,
+    "category": "Elektronarzędzia",
+    "location": {
+      "warehouse": "Kraków Południe",
+      "address": "ul. Magazynowa 1"
+    },
+    "manufacturer": "Bosch",
+    "model": "GBH 2-26",
+    "name": "Młotowiertarka udarowa",
+    "price_per_day": 50.99
+  },
+  {
+    "_id": {"$oid": "60b0b0b0b0b0b0b0b0b0b002"},
+    "availability": true,
+    "category": "Maszyny Budowlane",
+    "location": {
+      "warehouse": "Warszawa Centrum",
+      "address": "ul. Centralna 5"
+    },
+    "manufacturer": "Belle",
+    "model": "B150",
+    "name": "Betoniarka",
+    "price_per_day": 80.99
+  }
+]
+```
+
+Teraz reszta kolekcji wygląda tak samo dla obu przykładów, więc nie będziemy ich powtarzać.
+
+Kolekcja `clients`:
+```json
+[
+  {
+    "_id": {"$oid": "60a0a0a0a0a0a0a0a0a0a001"},
+    "email": "jan.kowalski@example.com",
+    "first_name": "Jan",
+    "last_name": "Kowalski",
+    "phone": "123-456-789"
+  },
+  {
+    "_id": {"$oid": "60a0a0a0a0a0a0a0a0a0a002"},
+    "email": "anna.nowak@example.com",
+    "first_name": "Anna",
+    "last_name": "Nowak",
+    "phone": "987-654-321"
+  }
+]
+```
+
+Kolekcja `rentals`:
+```json
+[
+  {
+    "_id": {"$oid": "60c0c0c0c0c0c0c0c0c0c001"},
+    "actual_return_date": {"$date": "2025-05-27T14:30:00.000Z"},
+    "client_id": {"$oid": "60a0a0a0a0a0a0a0a0a0a001"},
+    "equipment_id": {"$oid": "60b0b0b0b0b0b0b0b0b0b001"},
+    "notes": "Brak uszkodzeń",
+    "planned_return_date": {"$date": "2025-05-22T17:00:00.000Z"},
+    "rental_date": {"$date": "2025-05-20T08:00:00.000Z"}
+  },
+  {
+    "_id": {"$oid": "60c0c0c0c0c0c0c0c0c0c002"},
+    "actual_return_date": {"$date": "2025-05-27T15:30:00.000Z"},
+    "client_id": {"$oid": "60a0a0a0a0a0a0a0a0a0a002"},
+    "equipment_id": {"$oid": "60b0b0b0b0b0b0b0b0b0b001"},
+    "notes": "Lekkie zarysowania",
+    "planned_return_date": {"$date": "2025-05-27T16:00:00.000Z"},
+    "rental_date": {"$date": "2025-05-25T10:00:00.000Z"}
+  },
+  {
+    "_id": {"$oid": "60c0c0c0c0c0c0c0c0c0c003"},
+    "actual_return_date": {"$date": "2025-05-27T16:30:00.000Z"},
+    "client_id": {"$oid": "60a0a0a0a0a0a0a0a0a0a001"},
+    "equipment_id": {"$oid": "60b0b0b0b0b0b0b0b0b0b002"},
+    "notes": "Sprawna",
+    "planned_return_date": {"$date": "2025-06-03T18:00:00.000Z"},
+    "rental_date": {"$date": "2025-06-01T09:00:00.000Z"}
+  }
+]
+```
+
+Kolekcja `reviews`:
+```json
+[
+  {
+    "_id": {"$oid": "60d0d0d0d0d0d0d0d0d0d001"},
+    "client_id": {"$oid": "60a0a0a0a0a0a0a0a0a0a001"},
+    "comment": "Fajne, fajne",
+    "date": {"$date": "2025-05-20T12:00:00.000Z"},
+    "equipment_id": {"$oid": "60b0b0b0b0b0b0b0b0b0b001"},
+    "rating": 4
+  },
+  {
+    "_id": {"$oid": "60d0d0d0d0d0d0d0d0d0d002"},
+    "client_id": {"$oid": "60a0a0a0a0a0a0a0a0a0a001"},
+    "comment": "Super sprzęt!",
+    "date": {"$date": "2025-06-04T10:00:00.000Z"},
+    "equipment_id": {"$oid": "60b0b0b0b0b0b0b0b0b0b002"},
+    "rating": 5
+  }
+]
+```
+
+### Przykłady zapytań
+
+### Dodanie nowego wypożyczenia
+Aby dodać nowe wypożyczenie w przykładzie A, należy zaktualizować dokument w kolekcji `equipment` oraz dodać nowy dokument do kolekcji `rentals`. W przykładzie B wystarczy dodać nowy dokument do kolekcji `rentals`, ponieważ nie ma potrzeby aktualizacji dokumentu w kolekcji `equipment`.
+
+Zapytanie do dodania nowego wypożyczenia w przykładzie A:
+
 
 ```js
---  ...
+const equipmentId = ...;// ID sprzętu, do którego dodajemy wypożyczenie
+const clientId = ...;// ID klienta, który wypożycza sprzęt
+const newRentalId = new ObjectId();
+const rentalDate = new ISODate();
+const plannedReturnDate = new ISODate("2025-06-01T12:00:00Z");
+
+db.equipment.updateOne(
+  { _id: equipmentId },
+  { 
+    $push: { 
+      rentals: {
+        rental_id: newRentalId, // Używamy tego samego ID
+        client_id: clientId,
+        rental_date: rentalDate,
+        planned_return_date: plannedReturnDate,
+        actual_return_date: null,
+        notes: "Note"
+      }
+    } 
+  }
+);
+
+db.rentals.insertOne({
+  _id: newRentalId, // Używamy tego samego ID
+  equipment_id: equipmentId,
+  client_id: clientId,
+  rental_date: rentalDate,
+  planned_return_date: plannedReturnDate,
+  actual_return_date: null,
+  notes: "Note"
+});
 ```
+
+W przykładzie B zapytanie do dodania nowego wypożyczenia wygląda następująco:
+
+```js
+const equipmentId = ...;// ID sprzętu, do którego dodajemy wypożyczenie
+const clientId = ...;// ID klienta, który wypożycza sprzęt
+const newRentalId = new ObjectId();
+const rentalDate = new ISODate();
+const plannedReturnDate = new ISODate("2025-06-01T12:00:00Z");
+db.rentals.insertOne({
+  _id: newRentalId,
+  equipment_id: equipmentId,
+  client_id: clientId,
+  rental_date: rentalDate,
+  planned_return_date: plannedReturnDate,
+  actual_return_date: null,
+  notes: "Note"
+});
+```
+### Wyciąganie danych o sprzęcie i jego wypożyczeniach
+Aby wyciągnąć dane o sprzęcie i jego wypożyczeniach w przykładzie A, wystarczy użyć następującego zapytania:
+```js
+const equipmentId = ObjectId("..."); 
+db.equipment.findOne({ _id: equipmentId }); 
+```
+
+Do uzyskania podobnego wyniku w przykładzie B, trzeba wykonać zapytanie aggregacyjne, aby połączyć dane z kolekcji `equipment` i `rentals`:
+```js
+// Załóżmy, że znamy _id sprzętu
+const equipmentId = ObjectId("...");
+db.equipment.aggregate([
+  { $match: { _id: equipmentId } },
+  {
+    $lookup: {
+      from: "rentals",
+      localField: "_id",
+      foreignField: "equipment_id",
+      as: "rental_history"
+    }
+  }
+]);
+```
+
+Wynik polecenia (Przykład B) dla sprzętu o ID `60b0b0b0b0b0b0b0b0b0b001` wygląda następująco:
+```json
+[
+  {
+    "_id": {"$oid": "60b0b0b0b0b0b0b0b0b0b001"},
+    "availability": true,
+    "category": "Elektronarzędzia",
+    "location": {
+      "warehouse": "Kraków Południe",
+      "address": "ul. Magazynowa 1"
+    },
+    "manufacturer": "Bosch",
+    "model": "GBH 2-26",
+    "name": "Młotowiertarka udarowa",
+    "price_per_day": 50.99,
+    "rental_history": [
+      {
+        "_id": {"$oid": "60c0c0c0c0c0c0c0c0c0c001"},
+        "equipment_id": {"$oid": "60b0b0b0b0b0b0b0b0b0b001"},
+        "client_id": {"$oid": "60a0a0a0a0a0a0a0a0a0a001"},
+        "rental_date": {"$date": "2025-05-20T08:00:00.000Z"},
+        "planned_return_date": {"$date": "2025-05-22T17:00:00.000Z"},
+        "actual_return_date": {"$date": "2025-05-27T14:30:00.000Z"},
+        "notes": "Brak uszkodzeń"
+      },
+      {
+        "_id": {"$oid": "60c0c0c0c0c0c0c0c0c0c002"},
+        "equipment_id": {"$oid": "60b0b0b0b0b0b0b0b0b0b001"},
+        "client_id": {"$oid": "60a0a0a0a0a0a0a0a0a0a002"},
+        "rental_date": {"$date": "2025-05-25T10:00:00.000Z"},
+        "planned_return_date": {"$date": "2025-05-27T16:00:00.000Z"},
+        "actual_return_date": {"$date": "2025-05-27T15:30:00.000Z"},
+        "notes": "Lekkie zarysowania"
+      }
+    ]
+  }
+]
+ ```
+
+W tym przypadku zdecydowanie lepiej sprawdzi się przykład A, ponieważ wszystkie dane o wypożyczeniach są już w dokumencie sprzętu, więc nie trzeba wykonywać dodatkowego zapytania do kolekcji `rentals`.
+
+### Aktualizacja stanu wypożyczenia
+
+W przykładzie A:
+```js
+const rentalId = ObjectId("60b0b0b0b0b0b0b0b0b0b001"); 
+const doc = db.rentals.findOne({ _id: rentalId });
+const equipmentId = doc.equipment_id;
+
+db.equipment.updateOne(
+  { _id: equipmentId, "rentals.rental_id": rentalId },
+  { $set: { "rentals.$.actual_return_date": new ISODate(), "rentals.$.notes": "Sprzęt zwrócony" } }
+);
+
+db.rentals.updateOne(
+  { _id: rentalId },
+  { $set: { actual_return_date: new ISODate(), notes: "Sprzęt zwrócony" } } 
+```
+
+Dla przykładu B:
+```js
+const rentalIdToUpdate = ...; 
+db.rentals.updateOne(
+  { _id: rentalIdToUpdate },
+  { $set: { notes: "Sprzęt zwrócony" } }
+);
+```
+
+Wynik polecenia (B):
+```json
+[
+  {
+    "_id": {"$oid": "60c0c0c0c0c0c0c0c0c0c001"},
+    "actual_return_date": {"$date": "2025-05-27T14:30:00.000Z"},
+    "client_id": {"$oid": "60a0a0a0a0a0a0a0a0a0a001"},
+    "equipment_id": {"$oid": "60b0b0b0b0b0b0b0b0b0b001"},
+    "notes": "Sprzęt zwrócony",
+    "planned_return_date": {"$date": "2025-05-22T17:00:00.000Z"},
+    "rental_date": {"$date": "2025-05-20T08:00:00.000Z"}
+  }
+]
+```
+
+Wynik polecenia w kolekcji `equipment` (A):
+```json
+[
+  {
+    "_id": {"$oid": "60b0b0b0b0b0b0b0b0b0b001"},
+    "availability": true,
+    "category": "Elektronarzędzia",
+    "location": {
+      "warehouse": "Kraków Południe",
+      "address": "ul. Magazynowa 1"
+    },
+    "manufacturer": "Bosch",
+    "model": "GBH 2-26",
+    "name": "Młotowiertarka udarowa",
+    "price_per_day": 50.99,
+    "rentals": [
+      {
+        "rental_id": {"$oid": "60c0c0c0c0c0c0c0c0c0c001"},
+        "client_id": {"$oid": "60a0a0a0a0a0a0a0a0a0a001"},
+        "rental_date": {"$date": "2025-05-20T08:00:00.000Z"},
+        "planned_return_date": {"$date": "2025-05-22T17:00:00.000Z"},
+        "actual_return_date": {"$date": "2025-05-20T23:04:39.911Z"},
+        "notes": "Sprzęt zwrócony"
+      },
+      {
+        "rental_id": {"$oid": "60c0c0c0c0c0c0c0c0c0c002"},
+        "client_id": {"$oid": "60a0a0a0a0a0a0a0a0a0a002"},
+        "rental_date": {"$date": "2025-05-25T10:00:00.000Z"},
+        "planned_return_date": {"$date": "2025-05-27T16:00:00.000Z"},
+        "actual_return_date": {"$date": "2025-05-27T15:30:00.000Z"},
+        "notes": "Lekkie zarysowania"
+      }
+    ]
+  },
+]
+```
+
+W tym przypadku lepszy okazał się przykład B, ponieważ nie trzeba było aktualizować dokumentu w kolekcji `equipment`, a jedynie zaktualizować dokument w kolekcji `rentals`. Dzięki temu operacja była szybsza i bardziej efektywna.
+
+### Wnioski
+Końcowo mimo wszystko do naszego projektu lepiej pasuje przykład B, ponieważ mamy mniejsze dokumenty, co może poprawić wydajność operacji zapisu i aktualizacji. Możemy również łatwiej zarządzać historią wypożyczeń, ponieważ każda transakcja jest przechowywana w osobnym dokumencie. Dodatkowo możemy łatwo dodawać nowe pola do dokumentów bez wpływu na inne kolekcje. 
 
 ---
 
@@ -1746,6 +2426,7 @@ Punktacja:
 | 1       | 1   |
 | 2       | 1   |
 | razem   | 2   |
+
 
 
 
