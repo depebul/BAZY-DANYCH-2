@@ -1,4 +1,23 @@
 # Entity Framework
+
+<style>
+  {
+    font-size: 16pt;
+  }
+</style> 
+
+<style scoped>
+ li, p {
+    font-size: 14pt;
+  }
+</style> 
+
+<style scoped>
+ pre {
+    font-size: 10pt;
+  }
+</style> 
+
 ## Autorzy: Szymon Migas, Dawid Żak
 
 # Część I
@@ -105,7 +124,14 @@ Teraz dodamy kod odpowiedzialny za dodanie nowego produktu, podczas uruchomienia
 
 
 # Część II
-## Zadanie 1.
+## Zadanie A.
+Zmodyfikuj model wprowadzając pojęcie Dostawcy jak poniżej
+![Polecenie A](../dotnet-screeny/Polecenie00001.png)
+- Stwórz nowego dostawcę.
+- Znajdź poprzednio wprowadzony produkt i ustaw jego dostawcę na właśnie dodanego.
+- Udokumentuj wykonane kroki oraz uzyskany rezultat (.schema table/diagram z datagrip, select * from….)
+
+---
 
 Plik `Supplier.cs` zawiera klasę `Supplier`, która będzie reprezentować dostawcę produktów:
 
@@ -187,8 +213,15 @@ Schematy powstałych tabel:
 Wyniki po dodaniu dostawcy do ostatnio dodanego produktu:
 ![Screen 25](../dotnet-screeny/25.png)
 
-## Zadanie 2.
+## Zadanie B.
+Odwróć relację zgodnie z poniższym schematem
+![Polecenie B](../dotnet-screeny/Polecenie00005.png)
 
+- Stwórz kilka produktów.
+- Dodaj je do produktów dostarczanych przez nowo stworzonego dostawcę.
+- Udokumentuj wykonane kroki oraz uzyskany rezultat (.schema table/diagram z datagrip, select * from….)
+
+---
 
 Plik `Supplier.cs`:
 
@@ -280,7 +313,14 @@ Wyniki migracji i działania programu:
 Schematy powstałych tabel:
 ![Screen 27](../dotnet-screeny/27.png)
 
-## Zadanie 3.
+## Zadanie C.
+Zamodeluj relację dwustronną jak poniżej:
+![Polecenie C](../dotnet-screeny/Polecenie00004.png)
+- Stwórz kilka produktów.
+- Dodaj je do produktów dostarczanych przez nowo stworzonego dostawcę.
+- Udokumentuj wykonane kroki oraz uzyskany rezultat (.schema table/diagram z datagrip, select * from….)
+
+---
 
 
 Plik `Supplier.cs`:
@@ -380,7 +420,16 @@ Wyniki działania programu:
 Schematy powstałych tabel:
 ![Screen 30](../dotnet-screeny/30.png)
 
-## Zadanie 4.
+## Zadanie D.
+Zamodeluj relację wiele-do-wielu, jak poniżej:
+![Polecenie D](../dotnet-screeny/Polecenie00003.png)
+- Stwórzy kilka produktów i "sprzedaj" je na kilku transakcjach.
+- Pokaż produkty sprzedane w ramach wybranej faktury/transakcji
+- Pokaż faktury, w ramach których sprzedany został wybrany produkt
+- Udokumentuj wykonane kroki oraz uzyskany rezultat (.schema table/diagram z datagrip, select * from….)
+
+---
+
 Plik `Product.cs`:
 ```cs
 
@@ -522,7 +571,15 @@ foreach (var invoices in query2)
 ![Screen 32](../dotnet-screeny/32.png)
 
 
-## Zadanie 5.
+## Zadanie E.
+Wprowadźdomodeluponiższą hierarchie dziedziczenia używając startegii `Table-Per-Hierarchy`:
+
+![Polecenie E](../dotnet-screeny/Polecenie00002.png)
+
+- Dodaj i pobierz z bazy kilka firm obu rodzajów.
+- Udokumentuj wykonane kroki oraz uzyskany rezultat (.schema table/diagram z datagrip, select * from….)
+
+---
 
 Plik `Company.cs`:
 ```cs
@@ -622,4 +679,67 @@ foreach (var customer in customersWithZip)
     Console.WriteLine($"- {customer.CompanyName}, Zip: {customer.ZipCode}");
 }
 
+
 ```
+
+![Screen 33](../dotnet-screeny/33.png)
+![Screen 34](../dotnet-screeny/34.png)
+![Screen 37](../dotnet-screeny/37.png)
+## Zadanie F.
+Zamodeluj tę samą hierarchię dziedziczenia, ale tym razem użyj strategii `Table-Per-Type`
+- Dodaj i pobierz z bazy kilka firm obu rodzajów.
+- Udokumentuj wykonane kroki oraz uzyskany rezultat (.schema table/diagram z datagrip, select * from….)
+
+---
+
+Plik `ProdContext.cs`:
+```cs
+using Microsoft.EntityFrameworkCore;
+public class ProdContext : DbContext
+{
+    public DbSet<Product> Products { get; set; }
+    public DbSet<Company> Companies { get; set; }
+    public DbSet<Supplier> Suppliers { get; set; }
+    public DbSet<Customer> Customers { get; set; }
+    public DbSet<Invoice> Invoices { get; set; }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        base.OnConfiguring(optionsBuilder);
+        optionsBuilder.UseSqlite("Datasource=MyProductDatabase");
+    }
+
+    // Dodano sekcję odpowiedzialną za strategię Table Per Type 
+    protected override void onModelCreating(ModelBuilder modelBuilder)
+    {
+        base.onModelCreating(modelBuilder);
+        modelBuilder.Entity<Company>().ToTable("Companies");
+        modelBuilder.Entity<Supplier>().ToTable("Suppliers");
+        modelBuilder.Entity<Customers>().ToTable("Customers");
+    }
+}
+
+
+```
+
+![Screen 35](../dotnet-screeny/35.png)
+![Screen 36](../dotnet-screeny/36.png)
+
+## Zadanie 7.
+
+## Porównanie strategii TPH i TPT
+
+**TPH (Table Per Hierarchy)** - Zadanie E:
+- Wszystkie klasy (`Company`, `Supplier`, `Customer`) przechowywane w jednej tabeli `Companies`
+- EF dodaje kolumnę dyskryminatora automatycznie do rozróżnienia typów
+- Szybsze zapytania (brak JOIN-ów)
+- Potencjalnie więcej pustych kolumn dla różnych typów
+
+**TPT (Table Per Type)** - Zadanie F:
+- Każda klasa ma własną tabelę (`Companies`, `Suppliers`, `Customers`)
+- Tabele potomne łączą się z tabelą bazową przez klucz obcy
+- Bardziej znormalizowana struktura bazy danych
+- Wolniejsze zapytania ze względu na konieczność JOIN-ów
+
+W zadaniu ze względu na to, że klasy `Supplier` i `Customer` nie mają dużo unikalnych właściwości, TPH nie jest problemem (nie ma dużo `null`-ów w jednej tabeli). Jednak w przypadku bardziej złożonych hierarchii, TPT może być lepszym rozwiązaniem, ponieważ pozwala na lepszą organizację danych i unikanie dużej liczby kolumn z wartościami `null`.
+

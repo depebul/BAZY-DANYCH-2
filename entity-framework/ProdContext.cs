@@ -13,4 +13,12 @@ public class ProdContext : DbContext
         optionsBuilder.UseSqlite("Datasource=MyProductDatabase");
     }
 
+    protected override void onModelCreating(ModelBuilder modelBuilder)
+    {
+        base.onModelCreating(modelBuilder);
+        modelBuilder.Entity<Company>().ToTable("Companies");
+        modelBuilder.Entity<Supplier>().ToTable("Suppliers");
+        modelBuilder.Entity<Customers>().ToTable("Customers");
+    }
+
 }
