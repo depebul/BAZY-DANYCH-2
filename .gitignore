@@ -85,3 +85,6 @@ bld/
 .AppleDouble
 .LSOverride
 ._*
+
+# db-derby from hibernate
+hibernate/db-derby-10.17.1.0-bin
