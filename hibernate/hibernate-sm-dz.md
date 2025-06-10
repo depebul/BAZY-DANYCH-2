@@ -1,4 +1,4 @@
-# Entity Framework
+# Hibernate, JPA
 
 <style>
   {
@@ -1638,3 +1638,247 @@ Wprowadź do modelu następującą hierarchię:
 ![Polecenie 6](screeny/p6.png)
 - Dodaj i pobierz z bazy kilka firm obu rodzajów stosując po kolei trzy różne strategie mapowania dziedziczenia:
 
+Na początku tworzymy nową klasę `Company` po której dziedziczyć będą klasy `Supplier` oraz `Customer`:
+```java
+...
+
+@Entity
+public class Company {
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private int companyID;
+    private String companyName;
+    private String street;
+    private String city;
+    private String zipCode;
+    
+    public Company() {
+        
+    }
+    
+    public Company(String companyName, String street, String city, String zipCode) {
+        this.companyName = companyName;
+        this.street = street;
+        this.city = city;
+        this.zipCode = zipCode;
+    }
+    
+    @Override
+    public String toString() {
+        return "Company ID: " + companyID + "\n" +
+                "Company Name: " + companyName + "\n" +
+                "Address: " + street + ", " + city + ", " + zipCode + "\n";
+    }
+}
+```
+
+Klasa `Supplier`:
+```java
+...
+
+@Entity
+public class Supplier extends Company{
+    private String bankAccountNumber;
+   
+
+    public Supplier() {
+    }
+
+    public Supplier(String companyName, String street, String city, String zipCode ,String bankAccountNumber) {
+        super(companyName, street, city, zipCode);
+        this.bankAccountNumber = bankAccountNumber;
+    }
+
+
+    @Override
+    public String toString() {
+        return "Supplier ID: " + super.getCompanyID() + "\n" +
+                "Bank Account Number: " + bankAccountNumber + "\n" +
+                super.toString() +
+                "\n";
+    }
+}
+
+```
+
+Klasa `Customer`:
+```java
+...
+
+@Entity
+public class Customer extends Company {
+    private double discount;
+
+    public Customer() {
+    }
+
+    public Customer(String companyName, String street, String city, String zipCode, double discount) {
+        super(companyName, street, city, zipCode);
+        this.discount = discount;
+    }
+
+    @Override
+    public String toString() {
+        return "Customer ID: " + super.getCompanyID() + "\n" +
+               "Discount: " + discount + "\n" +
+               super.toString() +
+               "\n";
+    }
+
+}
+```
+
+Następnie będziemy wprowadzać różne strategie mapowania dziedziczenia:
+- `SINGLE_TABLE`
+- `TABLE_PER_CLASS`
+- `JOINED`
+
+
+### Strategia Table per Class
+
+```
+Hibernate: 
+    create table Company (
+        companyID integer not null,
+        city varchar(255),
+        companyName varchar(255),
+        street varchar(255),
+        zipCode varchar(255),
+        primary key (companyID)
+    )
+Hibernate: 
+    create table Customer (
+        companyID integer not null,
+        discount float(52) not null,
+        city varchar(255),
+        companyName varchar(255),
+        street varchar(255),
+        zipCode varchar(255),
+        primary key (companyID)
+    )
+Hibernate: 
+    create table Supplier (
+        companyID integer not null,
+        bankAccountNumber varchar(255),
+        city varchar(255),
+        companyName varchar(255),
+        street varchar(255),
+        zipCode varchar(255),
+        primary key (companyID)
+    )
+```
+
+Baza danych po uruchomieniu:
+![Screen 27](screeny/000027.png)
+![Screen 28](screeny/000028.png)
+![Screen 29](screeny/000029.png)
+
+
+```
+Supplier found: Supplier ID: 1
+Bank Account Number: PL61109010140000071219812874
+Company ID: 1
+Company Name: Buraki Sp. z o.o.
+Address: Barszczowa, Burakowo, 12345
+```
+```
+Customer found: Customer ID: 3
+Discount: 0.2
+Company ID: 3
+Company Name: Janex
+Address: Warszawska, Janów Lubelski, 30123
+```
+
+### Strategia Single Table
+Zmiana strategii dziedziczenia w klasie `Company`:
+```java
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+```
+
+Klasa `Main` pozostaje bez zmian.
+
+```
+Hibernate: 
+    create table Company (
+        companyID integer not null,
+        discount float(52),
+        DTYPE varchar(31) not null,
+        bankAccountNumber varchar(255),
+        city varchar(255),
+        companyName varchar(255),
+        street varchar(255),
+        zipCode varchar(255),
+        primary key (companyID)
+    )
+```
+Baza danych po uruchomieniu:
+![Screen 30](screeny/000030.png)
+
+
+```
+Supplier found: Supplier ID: 1
+Bank Account Number: PL61109010140000071219812874
+Company ID: 1
+Company Name: Buraki Sp. z o.o.
+Address: Barszczowa, Burakowo, 12345
+```
+```
+Customer found: Customer ID: 3
+Discount: 0.2
+Company ID: 3
+Company Name: Janex
+Address: Warszawska, Janów Lubelski, 30123
+```
+### Strategia Joined
+Zmiana strategii dziedziczenia w klasie `Company`:
+```java
+@Inheritance(strategy = InheritanceType.JOINED)
+```
+
+
+```
+Hibernate: 
+    create table Supplier (
+        companyID integer not null,
+        bankAccountNumber varchar(255),
+        primary key (companyID)
+    )
+Hibernate: 
+    create table Company (
+        companyID integer not null,
+        city varchar(255),
+        companyName varchar(255),
+        street varchar(255),
+        zipCode varchar(255),
+        primary key (companyID)
+    )
+Hibernate: 
+    create table Customer (
+        companyID integer not null,
+        discount float(52) not null,
+        primary key (companyID)
+    )
+```
+
+Baza danych po uruchomieniu:
+![Screen 31](screeny/000031.png)
+![Screen 32](screeny/000032.png)
+![Screen 33](screeny/000033.png)
+
+Schemat bazy danych:
+![Screen 34](screeny/000034.png)
+
+```
+Supplier found: Supplier ID: 1
+Bank Account Number: PL61109010140000071219812874
+Company ID: 1
+Company Name: Buraki Sp. z o.o.
+Address: Barszczowa, Burakowo, 12345
+```
+```
+Customer found: Customer ID: 3
+Discount: 0.2
+Company ID: 3
+Company Name: Janex
+Address: Warszawska, Janów Lubelski, 30123
+```
