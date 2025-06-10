@@ -1,31 +1,34 @@
 package org.example;
 
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.hibernate.Transaction;
-import org.hibernate.cfg.Configuration;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.Persistence;
 
+import java.util.List;
 
 public class Main {
-    private static SessionFactory sessionFactory = null;
-
     public static void main(String[] args) {
-        sessionFactory = getSessionFactory();
-        Session session = sessionFactory.openSession();
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory("MyLabDatabase");
+        EntityManager em = emf.createEntityManager();
+        EntityTransaction etx = em.getTransaction();
 
-        Product product = new Product("Kredki", 100);
-        Transaction tx = session.beginTransaction();
-        session.persist(product);
-        tx.commit();
+        etx.begin();
 
-        session.close();
-    }
+        Supplier supplier1 = new Supplier("Buraki Sp. z o.o.", "Barszczowa", "Burakowo");
 
-    private static SessionFactory getSessionFactory() {
-        if (sessionFactory == null) {
-            Configuration configuration = new Configuration();
-            sessionFactory = configuration.configure().buildSessionFactory();
+        Supplier supplier2 = new Supplier("Ziemniaki Sp. z o.o.", "Ziemniaczana", "Ziemniakowo");
+
+        em.persist(supplier1);
+        em.persist(supplier2);
+
+        var query = em.createQuery("SELECT s FROM Supplier s", Supplier.class);
+        List<Supplier> suppliers = query.getResultList();
+
+        for (Supplier supplier : suppliers) {
+            System.out.println(supplier);
         }
-        return sessionFactory;
+
+        etx.commit();
     }
 }
